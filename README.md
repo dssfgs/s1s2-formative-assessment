@@ -4,19 +4,37 @@
 
 對齊《中一及中二級課後進展性評估指引》：語文／非核心科目日程、達標與重測、標準分進步指數、每班早會頒獎首三名。
 
-**純前端、本機儲存，不經 Vercel。** 以 GitHub Pages 上線。
+**純前端、本機儲存，不經 Vercel、不經任何伺服器。** 以 GitHub Pages 上線。
+
+## 開啟 GitHub Pages（一次）
+
+1. 打開倉庫 **Settings → Pages**
+2. **Build and deployment → Source** 選 **Deploy from a branch**
+3. Branch 選 `main`，資料夾選 `/docs`
+4. Save
+
+約一分鐘後網站會在：
+
+**https://dssfgs.github.io/s1s2-formative-assessment/**
+
+之後改程式：本機 `npm run build`，把 `dist/` 內容覆寫到 `docs/`，再 push。
+
+（進階：Source 改為 GitHub Actions，每次 push `main` 會自動建置。）
 
 ## 使用
 
-1. 開啟 GitHub Pages：https://dssfgs.github.io/s1s2-formative-assessment/
+1. 打開上面的 Pages 網址
 2. 按「載入 1A／2A 示範數據」試用，或到班別輸入真實分數
-3. 資料只存在該瀏覽器（localStorage），可用「匯入匯出」做 JSON 備份
+3. 資料只存在該瀏覽器（localStorage），用「匯入匯出」做 JSON 備份後可換電腦
+
+學生姓名與分數**不會**上傳到 GitHub 或任何雲端。
 
 ### 功能
 
-- 中一／中二 八班成績表，語文每週小測 + 非核心每階段一次
-- 達標（預設 50%）／重測欄，教學助理輸入模式（中一 Ruby、中二 Ann）
-- 進步指數：班內標準分差（亦可改百分率差或名次進步）
+- 中一／中二 八班成績表（1A–1D、2A–2D）
+- 語文每週小測 + 非核心每階段一次（地理、公民、中史、歷史、佛化、科學）
+- 達標（預設 50%）／重測欄；教學助理輸入模式（中一 Ruby、中二 Ann）
+- 進步指數：班內標準分差（設定可改百分率差或名次進步）
 - 早會頒獎名單：每班首三名，可列印
 - 各科進程圖表（課程發展組）
 - 2026-2027 完整評估日程
@@ -24,20 +42,19 @@
 
 ### 公式（標準分差）
 
-1. 階段分 = 該階段已作答各次百分率平均  
-2. 同一班同一科算 μ、σ，z = (x − μ) / σ  
-3. 科進步 = z本階段 − z上一階段  
+1. 階段分 = 該階段已作答各次百分率平均
+2. 同一班同一科算 μ、σ，z = (x − μ) / σ
+3. 科進步 = z本階段 − z上一階段
 4. 學生總進步 = 各科進步平均；每班取最高三名頒獎
 
-## 本機
+## 本機開發
 
 ```bash
 npm install
 npm run dev
 ```
 
-## GitHub Pages
-
-倉庫 Settings → Pages → Source 選 **GitHub Actions**。推送到 `main` 後 workflow 會建置並發布。
-
-亦可在本機 `npm run build`，把 `dist/` 的內容放到 Pages。
+```bash
+npm run build
+# 輸出在 dist/；複製到 docs/ 即可更新 Pages
+```
