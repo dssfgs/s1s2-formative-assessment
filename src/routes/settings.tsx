@@ -53,7 +53,7 @@ export function SettingsPage() {
               value={settings.defaultMax}
               onChange={(e) => setSettings({ defaultMax: Number(e.target.value) || 20 })}
             />
-            <p className="mt-1 text-xs text-muted-foreground">單次評估可在班表表頭改滿分（即將開放）；現以預設為準。</p>
+            <p className="mt-1 text-xs text-muted-foreground">各次評估可在該班成績表表頭改滿分。</p>
           </div>
         </CardContent>
       </Card>

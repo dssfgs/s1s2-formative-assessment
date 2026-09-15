@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
 import { Home } from "@/routes/index";
+import { AllPage } from "@/routes/all";
 import { AwardsPage } from "@/routes/awards";
 import { SubjectsPage } from "@/routes/subjects";
 import { CalendarPage } from "@/routes/calendar";
@@ -29,6 +30,7 @@ const rootRoute = createRootRoute({
 
 const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: "/", component: Home }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/all", component: AllPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/awards", component: AwardsPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/subjects", component: SubjectsPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/calendar", component: CalendarPage }),

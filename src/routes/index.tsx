@@ -68,6 +68,9 @@ export function Home() {
               匯入 CSV
             </Link>
           </Button>
+          <Button asChild variant="outline">
+            <Link to="/all">全校總表</Link>
+          </Button>
         </div>
       </header>
 

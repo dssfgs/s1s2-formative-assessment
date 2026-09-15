@@ -7,6 +7,7 @@ import {
   type StageId,
 } from "./calendar";
 import { emptyStudent, type ProgressMethod, type ScoreEntry, type Student } from "./progress";
+import type { RosterRow } from "./paste";
 import { makeDemoRoster, makeEmptyRoster } from "./sample";
 import type { SubjectId } from "./subjects";
 import type { ImportRow } from "./csv";
@@ -17,6 +18,12 @@ export type AppSettings = {
   paperMax: Record<string, number>;
   noncoreOrder: Record<StageId, SubjectId[]>;
   progressMethod: ProgressMethod;
+};
+
+export type StudentPatch = {
+  index: number;
+  student?: Partial<Pick<Student, "classno" | "chname" | "enname" | "regno">>;
+  scores?: Record<string, Partial<ScoreEntry>>;
 };
 
 const defaultSettings = (): AppSettings => ({
@@ -41,6 +48,9 @@ type State = {
   setPaperMax: (assessmentId: string, max: number) => void;
   setSettings: (patch: Partial<AppSettings>) => void;
   setNoncoreOrder: (stage: StageId, order: SubjectId[]) => void;
+  applyRoster: (code: ClassCode, rows: RosterRow[]) => number;
+  applyStudentPatches: (code: ClassCode, patches: StudentPatch[]) => void;
+  addRows: (code: ClassCode, n?: number) => void;
   loadDemo: () => void;
   resetAll: () => void;
   importRows: (rows: ImportRow[]) => { students: number; scores: number };
@@ -51,6 +61,16 @@ function ensureRow(list: Student[], index: number, code: ClassCode) {
   const next = list.slice();
   while (next.length <= index) next.push(emptyStudent(code, next.length));
   return next;
+}
+
+function cloneList(list: Student[]) {
+  return list.map((s) => ({ ...s, scores: { ...s.scores } }));
+}
+
+function padClassno(v: string) {
+  const t = v.replace(/\s/g, "");
+  if (!t) return t;
+  return /^\d+$/.test(t) ? t.padStart(2, "0") : t;
 }
 
 export const useAppStore = create<State>()(
@@ -94,6 +114,66 @@ export const useAppStore = create<State>()(
             noncoreOrder: { ...st.settings.noncoreOrder, [stage]: order },
           },
         })),
+      applyRoster: (code, rows) => {
+        let applied = 0;
+        set((st) => {
+          const list = cloneList(st.roster[code] ?? []);
+          const used = new Set<number>();
+          for (const row of rows) {
+            const no = (row.classno ?? "").replace(/^0+/, "");
+            let idx = -1;
+            if (no) {
+              idx = list.findIndex(
+                (s, i) => !used.has(i) && s.classno.replace(/^0+/, "") === no,
+              );
+            }
+            if (idx < 0) {
+              idx = list.findIndex((s, i) => !used.has(i) && !s.chname && !s.classno);
+            }
+            if (idx < 0) {
+              idx = list.length;
+              list.push(emptyStudent(code, idx));
+            }
+            used.add(idx);
+            const cur = list[idx]!;
+            if (row.regno) cur.regno = row.regno;
+            if (row.chname) cur.chname = row.chname;
+            if (row.enname) cur.enname = row.enname;
+            if (row.classno) cur.classno = padClassno(row.classno);
+            list[idx] = cur;
+            applied++;
+          }
+          return { roster: { ...st.roster, [code]: list } };
+        });
+        return applied;
+      },
+      applyStudentPatches: (code, patches) =>
+        set((st) => {
+          let list = cloneList(st.roster[code] ?? []);
+          for (const p of patches) {
+            while (list.length <= p.index) list.push(emptyStudent(code, list.length));
+            const cur = list[p.index]!;
+            const nextScores = { ...cur.scores };
+            if (p.scores) {
+              for (const [id, entry] of Object.entries(p.scores)) {
+                nextScores[id] = {
+                  ...(nextScores[id] ?? { raw: "", retake: "" }),
+                  ...entry,
+                };
+              }
+            }
+            const studentPatch = { ...(p.student ?? {}) };
+            if (studentPatch.classno) studentPatch.classno = padClassno(studentPatch.classno);
+            list[p.index] = { ...cur, ...studentPatch, scores: nextScores };
+          }
+          return { roster: { ...st.roster, [code]: list } };
+        }),
+      addRows: (code, n = 10) =>
+        set((st) => {
+          const list = (st.roster[code] ?? []).slice();
+          for (let i = 0; i < n; i++) list.push(emptyStudent(code, list.length));
+          return { roster: { ...st.roster, [code]: list } };
+        }),
       loadDemo: () => set({ roster: makeDemoRoster() }),
       resetAll: () => set({ roster: makeEmptyRoster(), settings: defaultSettings() }),
       importRows: (rows) => {
@@ -119,7 +199,7 @@ export const useAppStore = create<State>()(
             const cur = list[idx]!;
             if (row.chname) cur.chname = row.chname;
             if (row.regno) cur.regno = row.regno;
-            cur.classno = row.classno.padStart(2, "0");
+            cur.classno = padClassno(row.classno);
             if (row.assessmentId && (row.raw !== undefined || row.retake !== undefined)) {
               const prev = cur.scores[row.assessmentId] ?? { raw: "", retake: "" };
               cur.scores[row.assessmentId] = {

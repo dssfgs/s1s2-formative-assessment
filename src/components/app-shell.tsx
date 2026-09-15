@@ -9,6 +9,7 @@ import {
   Settings2,
   Table2,
   Upload,
+  Users,
   X,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/", label: "總覽", icon: LayoutGrid },
+  { to: "/all", label: "全校總表", icon: Users },
   { to: "/awards", label: "進步頒獎", icon: Award },
   { to: "/subjects", label: "各科進程", icon: Table2 },
   { to: "/calendar", label: "評估日程", icon: CalendarDays },

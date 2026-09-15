@@ -21,6 +21,7 @@
   --color-destructive: #8f2d2d;
   --color-ring: #3d4f3a;
   --color-input: #fffaf0;
+  --color-input-fg: #1e3a8a;
   --color-gold: #b0893e;
   --color-gold-fg: #3d2e0f;
   --color-pass: #dce8d8;
@@ -82,6 +83,13 @@
   table {
     font-size: 10px;
   }
+  body.print-reports .print-sheet,
+  body.print-reports .print\:hidden {
+    display: none !important;
+  }
+  body.print-reports .print-only-reports {
+    display: block !important;
+  }
 }
 
 .sheet-input {
@@ -92,10 +100,13 @@
   background: transparent;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  color: inherit;
+  color: var(--color-input-fg);
 }
 .sheet-input:focus {
   outline: 2px solid var(--color-ring);
   outline-offset: -2px;
   background: #fff;
+}
+.sheet-input-on-primary {
+  color: inherit;
 }
