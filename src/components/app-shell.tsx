@@ -151,7 +151,14 @@ function ClientGate({ children }: { children: ReactNode }) {
       useAppStore.setState({ hydrated: true });
       setReady(true);
     }
-    return unsub;
+    const t = window.setTimeout(() => {
+      useAppStore.setState({ hydrated: true });
+      setReady(true);
+    }, 400);
+    return () => {
+      unsub();
+      window.clearTimeout(t);
+    };
   }, []);
   if (!ready) {
     return (
