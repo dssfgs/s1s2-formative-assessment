@@ -1,5 +1,11 @@
 import { formOf, type ClassCode } from "./classes";
-import type { AssessmentDef, StageId } from "./calendar";
+import {
+  FORMAL_BY_STAGE,
+  FORMALS,
+  type AssessmentDef,
+  type FormalKind,
+  type StageId,
+} from "./calendar";
 import { parseNum, round2 } from "./format";
 import type { SubjectId } from "./subjects";
 
@@ -46,7 +52,13 @@ export type StageResult = {
 export type StudentProgress = {
   student: Student;
   stages: Record<string, StageResult>;
-  /** 與上一階段比較的各科進步指數（最新可用過渡） */
+  /** 中文／英文：該科所有已作答連續小測百分率差的平均 */
+  langProgress: Record<"chi" | "eng", number | null>;
+  /** 中文／英文：該科該階段連續小測百分率差的平均 */
+  langStageProgress: Record<string, number | null>;
+  /** 非核心：測驗／考試% − 對應階段課後評估%。鍵為 subject-T1A1 等 */
+  formalDelta: Record<string, number | null>;
+  /** 顯示用：語文取 langProgress；非核心取該科最新已有的 formalDelta */
   subjectDelta: Record<SubjectId, number | null>;
   overall: number | null;
   contributing: number;
@@ -107,7 +119,7 @@ export function quizResult(
     pct,
     passed,
     usedRetake: eff.usedRetake,
-    needsRetake: passed === false && !eff.usedRetake,
+    needsRetake: a.group !== "formal" && passed === false && !eff.usedRetake,
     raw: eff.raw,
     retake: eff.retake,
     max,
@@ -129,6 +141,17 @@ export function stagePct(
     passedAll: judged.length ? judged.every((r) => r.passed) : null,
     anyRetake: results.some((r) => r.usedRetake),
   };
+}
+
+/** 按日期排列的連續小測：平均（後一次% − 前一次%）。需至少兩次有分。 */
+export function meanConsecutiveImprovement(pcts: (number | null)[]): number | null {
+  const deltas: number[] = [];
+  for (let i = 1; i < pcts.length; i++) {
+    const prev = pcts[i - 1];
+    const cur = pcts[i];
+    if (prev !== null && cur !== null) deltas.push(cur - prev);
+  }
+  return deltas.length ? round2(mean(deltas)) : null;
 }
 
 function zOf(values: (number | null)[]): (number | null)[] {
@@ -166,16 +189,22 @@ function keyOf(subject: SubjectId, stage: StageId) {
   return `${subject}-${stage}`;
 }
 
+export function formalDeltaKey(subject: SubjectId, kind: FormalKind) {
+  return `${subject}-${kind}`;
+}
+
 export function computeClass(
   students: Student[],
   assessments: AssessmentDef[],
   maxOf: (id: string) => number,
   passPercent: number,
-  method: ProgressMethod,
+  _method: ProgressMethod = "pct",
 ): ClassCompute {
   const active = students.filter(isActive);
-  const subjects = [...new Set(assessments.map((a) => a.subject))];
-  const stages = [...new Set(assessments.map((a) => a.stage))].sort((a, b) => a - b);
+  const quizzes = assessments.filter((a) => a.group !== "formal");
+  const formals = assessments.filter((a) => a.group === "formal");
+  const subjects = [...new Set(quizzes.map((a) => a.subject))];
+  const stages = [...new Set(quizzes.map((a) => a.stage))].sort((a, b) => a - b);
 
   const stagePctMap: Record<string, (number | null)[]> = {};
   const stageQuiz: Record<string, { quizzes: number; passedAll: boolean | null; anyRetake: boolean }[]> =
@@ -183,7 +212,7 @@ export function computeClass(
 
   for (const sub of subjects) {
     for (const st of stages) {
-      const papers = assessments.filter((a) => a.subject === sub && a.stage === st);
+      const papers = quizzes.filter((a) => a.subject === sub && a.stage === st);
       if (!papers.length) continue;
       const k = keyOf(sub, st);
       stagePctMap[k] = active.map(
@@ -216,9 +245,11 @@ export function computeClass(
   active.forEach((student, idx) => {
     const stagesOut: Record<string, StageResult> = {};
     const subjectDelta: Record<string, number | null> = {};
+    const langProgress: Record<"chi" | "eng", number | null> = { chi: null, eng: null };
+    const langStageProgress: Record<string, number | null> = {};
+    const formalDelta: Record<string, number | null> = {};
 
     for (const sub of subjects) {
-      const deltas: number[] = [];
       for (const st of stages) {
         const k = keyOf(sub, st);
         if (!(k in stagePctMap)) continue;
@@ -237,69 +268,131 @@ export function computeClass(
           passedAll: q?.passedAll ?? null,
           anyRetake: q?.anyRetake ?? false,
         };
-
-        const prev = stages.filter((s) => s < st && keyOf(sub, s) in stagePctMap).at(-1);
-        if (prev) {
-          const pk = keyOf(sub, prev);
-          let d: number | null = null;
-          if (method === "z") {
-            const cz = zMap[k]?.[idx];
-            const pz = zMap[pk]?.[idx];
-            if (cz !== null && cz !== undefined && pz !== null && pz !== undefined) {
-              d = round2(cz - pz);
-            }
-          } else if (method === "pct") {
-            const c = stagePctMap[k]?.[idx];
-            const p = stagePctMap[pk]?.[idx];
-            if (c !== null && c !== undefined && p !== null && p !== undefined) {
-              d = round2(c - p);
-            }
-          } else {
-            const c = rankMap[k]?.[idx];
-            const p = rankMap[pk]?.[idx];
-            if (c !== null && c !== undefined && p !== null && p !== undefined) {
-              d = p - c;
-            }
-          }
-          if (d !== null) deltas.push(d);
-          subjectDelta[sub] = d;
-        }
       }
-      if (!(sub in subjectDelta)) subjectDelta[sub] = null;
     }
 
-    const contributing = Object.values(subjectDelta).filter((v) => v !== null).length;
-    const nums = Object.values(subjectDelta).filter((v): v is number => v !== null);
+    for (const lang of ["chi", "eng"] as const) {
+      const series = quizzes
+        .filter((a) => a.subject === lang)
+        .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+      if (!series.length) continue;
+      const allPcts = series.map((a) => quizResult(student, a, maxOf(a.id), passPercent).pct);
+      langProgress[lang] = meanConsecutiveImprovement(allPcts);
+      subjectDelta[lang] = langProgress[lang];
+      for (const st of stages) {
+        const stageSeries = series.filter((a) => a.stage === st);
+        const pcts = stageSeries.map((a) => quizResult(student, a, maxOf(a.id), passPercent).pct);
+        langStageProgress[keyOf(lang, st)] = meanConsecutiveImprovement(pcts);
+      }
+    }
+
+    for (const a of formals) {
+      if (!a.formalKind) continue;
+      const exam = quizResult(student, a, maxOf(a.id), passPercent).pct;
+      const sk = keyOf(a.subject, a.stage);
+      const stage = stagePctMap[sk]?.[idx] ?? null;
+      let d: number | null = null;
+      if (exam !== null && stage !== null) d = round2(exam - stage);
+      formalDelta[formalDeltaKey(a.subject, a.formalKind)] = d;
+      if (d !== null) subjectDelta[a.subject] = d;
+    }
+
+    if (!("chi" in subjectDelta)) subjectDelta.chi = langProgress.chi;
+    if (!("eng" in subjectDelta)) subjectDelta.eng = langProgress.eng;
+
+    const nums = Object.values(langProgress).filter((v): v is number => v !== null);
     byStudent.set(student.id, {
       student,
       stages: stagesOut,
+      langProgress,
+      langStageProgress,
+      formalDelta,
       subjectDelta: subjectDelta as Record<SubjectId, number | null>,
       overall: nums.length ? round2(mean(nums)) : null,
-      contributing,
+      contributing: nums.length,
     });
   });
 
   return { byStudent, stageMeta };
 }
 
-export function awardsForClass(
+/** 畫面用：語文＝連續小測平均升幅；非核心＝測考相對對應階段。 */
+export function progressOf(
+  p: StudentProgress | undefined,
+  subject: SubjectId | "all",
+  stage?: StageId | "all",
+): number | null {
+  if (!p) return null;
+  if (subject === "all") return p.overall;
+  if (subject === "chi" || subject === "eng") {
+    if (!stage || stage === "all") return p.langProgress[subject];
+    return p.langStageProgress[keyOf(subject, stage)] ?? null;
+  }
+  if (!stage || stage === "all") {
+    const vals = FORMALS.map((f) => p.formalDelta[formalDeltaKey(subject, f.kind)]).filter(
+      (v): v is number => v !== null && v !== undefined,
+    );
+    return vals.length ? round2(mean(vals)) : null;
+  }
+  return p.formalDelta[formalDeltaKey(subject, FORMAL_BY_STAGE[stage].kind)] ?? null;
+}
+
+function rankByDelta(
   computed: ClassCompute,
+  deltaOf: (p: StudentProgress) => number | null,
   top = 3,
 ): StudentProgress[] {
   return [...computed.byStudent.values()]
-    .filter((p) => p.overall !== null)
+    .filter((p) => deltaOf(p) !== null)
     .sort((a, b) => {
-      const d = (b.overall ?? -999) - (a.overall ?? -999);
+      const d = (deltaOf(b) ?? -999) - (deltaOf(a) ?? -999);
       if (d !== 0) return d;
-      if (b.contributing !== a.contributing) return b.contributing - a.contributing;
-      return a.student.classno.localeCompare(b.student.classno, "zh-Hant", {
-        numeric: true,
-      });
+      return a.student.classno.localeCompare(b.student.classno, "zh-Hant", { numeric: true });
     })
     .slice(0, top);
 }
 
-export function classStats(students: Student[], assessments: AssessmentDef[], maxOf: (id: string) => number, passPercent: number) {
+/** 語文：該班該科進步指數（連續小測平均升幅）首三名。可限某一階段。 */
+export function awardsLanguage(
+  computed: ClassCompute,
+  subject: "chi" | "eng",
+  stage?: StageId,
+  top = 3,
+): StudentProgress[] {
+  return rankByDelta(
+    computed,
+    (p) =>
+      stage
+        ? (p.langStageProgress[keyOf(subject, stage)] ?? null)
+        : p.langProgress[subject],
+    top,
+  );
+}
+
+/** 非核心：測驗／考試相對對應階段課後評估的進步首三名。 */
+export function awardsFormal(
+  computed: ClassCompute,
+  subject: SubjectId,
+  kind: FormalKind,
+  top = 3,
+): StudentProgress[] {
+  const k = formalDeltaKey(subject, kind);
+  return rankByDelta(computed, (p) => p.formalDelta[k] ?? null, top);
+}
+
+export function awardsForClass(
+  computed: ClassCompute,
+  top = 3,
+): StudentProgress[] {
+  return rankByDelta(computed, (p) => p.overall, top);
+}
+
+export function classStats(
+  students: Student[],
+  assessments: AssessmentDef[],
+  maxOf: (id: string) => number,
+  passPercent: number,
+) {
   const active = students.filter(isActive);
   let papers = 0;
   let sat = 0;
@@ -308,6 +401,7 @@ export function classStats(students: Student[], assessments: AssessmentDef[], ma
   let need = 0;
   for (const s of active) {
     for (const a of assessments) {
+      if (a.group === "formal") continue;
       if (formOf(s.classcode) !== a.form) continue;
       papers++;
       const r = quizResult(s, a, maxOf(a.id), passPercent);

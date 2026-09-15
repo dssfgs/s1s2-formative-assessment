@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Award, CalendarDays, Sparkles, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,12 @@ import {
   upcomingAssessments,
   weekdayLabel,
 } from "@/lib/calendar";
-import { fmtPct, isoToShort } from "@/lib/format";
-import { classStats, computeClass, isActive } from "@/lib/progress";
+import { fmtPct, isoToShort, signed } from "@/lib/format";
+import { awardsLanguage, classStats, computeClass, isActive } from "@/lib/progress";
 import { subjectShort } from "@/lib/subjects";
 import { useAppStore, useAssessments, useMaxOf } from "@/lib/store";
 
+export const Route = createFileRoute("/")({ component: Home });
 
 export function Home() {
   const roster = useAppStore((s) => s.roster);
@@ -53,8 +54,7 @@ export function Home() {
             {SCHOOL_YEAR} 課後進展性評估
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            對齊學與教事務委員會指引：語文科每週小測、非核心科目測考前一至兩週、
-            20 分鐘、達標離校／不達標重測，並計算每班進步指數首三名。
+            對齊學與教事務委員會指引：中文、英文分開輸入與分析；非核心科目另計測驗／考試相對階段進步；每班頒進步指數首三名。
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -92,7 +92,7 @@ export function Home() {
         <Stat
           label="及格線"
           value={`${settings.passPercent}%`}
-          hint={`預設滿分 ${settings.defaultMax} · 可在設定更改`}
+          hint={`課後評估 ${settings.defaultMax} 分 · 測考 ${settings.examMax ?? 100} 分`}
         />
       </section>
 
@@ -138,7 +138,7 @@ export function Home() {
               <Award className="size-4" />
               早會頒獎預覽
             </CardTitle>
-            <CardDescription>每班進步指數最高三名。需連續兩階段成績。</CardDescription>
+            <CardDescription>中文、英文分開計算進步指數。需連續兩次小測。</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <AwardPeek />
@@ -192,43 +192,59 @@ function AwardPeek() {
   const all = useAssessments();
   const maxOf = useMaxOf();
 
-  const rows = ALL_CLASSES.flatMap((code) => {
-    const papers = all.filter((a) => a.form === formOf(code));
-    const computed = computeClass(
-      roster[code] ?? [],
-      papers,
-      maxOf,
-      settings.passPercent,
-      settings.progressMethod,
-    );
-    return [...computed.byStudent.values()]
-      .filter((p) => p.overall !== null)
-      .sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0))
-      .slice(0, 1)
-      .map((p) => ({ code, p }));
-  }).slice(0, 4);
+  const tracks: { label: string; subject: "chi" | "eng" }[] = [
+    { label: "中文", subject: "chi" },
+    { label: "英文", subject: "eng" },
+  ];
 
-  if (!rows.length) {
+  const byTrack = tracks.map(({ label, subject }) => {
+    const rows = ALL_CLASSES.flatMap((code) => {
+      const papers = all.filter((a) => a.form === formOf(code));
+      const computed = computeClass(
+        roster[code] ?? [],
+        papers,
+        maxOf,
+        settings.passPercent,
+        settings.progressMethod,
+      );
+      return awardsLanguage(computed, subject, undefined, 1).map((p) => ({
+        code,
+        name: p.student.chname,
+        delta: p.langProgress[subject] as number,
+      }));
+    }).slice(0, 2);
+    return { label, rows };
+  });
+
+  if (byTrack.every((t) => t.rows.length === 0)) {
     return (
       <p className="text-sm text-muted-foreground">
-        尚未有兩階段成績。可先載入示範數據，或到班別輸入分數。
+        尚未有連續兩次小測成績。可先載入示範數據，或到班別輸入分數。
       </p>
     );
   }
 
   return (
-    <ul className="space-y-2 text-sm">
-      {rows.map(({ code, p }) => (
-        <li key={code} className="flex items-center justify-between">
-          <span>
-            {code} {p.student.chname}
-          </span>
-          <span className="tabular-nums text-up">
-            {p.overall! > 0 ? "+" : ""}
-            {p.overall?.toFixed(2)}
-          </span>
-        </li>
+    <div className="grid grid-cols-2 gap-3 text-sm">
+      {byTrack.map((t) => (
+        <div key={t.label}>
+          <p className="mb-1 text-[11px] font-medium text-muted-foreground">{t.label}</p>
+          {t.rows.length === 0 ? (
+            <p className="text-xs text-muted-foreground">尚欠成績</p>
+          ) : (
+            <ul className="space-y-1.5">
+              {t.rows.map((r) => (
+                <li key={`${t.label}-${r.code}`} className="flex items-center justify-between gap-2">
+                  <span className="truncate">
+                    {r.code} {r.name}
+                  </span>
+                  <span className="tabular-nums text-up">{signed(r.delta)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       ))}
-    </ul>
+    </div>
   );
 }

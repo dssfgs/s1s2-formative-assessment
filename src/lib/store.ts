@@ -15,6 +15,7 @@ import type { ImportRow } from "./csv";
 export type AppSettings = {
   passPercent: number;
   defaultMax: number;
+  examMax: number;
   paperMax: Record<string, number>;
   noncoreOrder: Record<StageId, SubjectId[]>;
   progressMethod: ProgressMethod;
@@ -29,6 +30,7 @@ export type StudentPatch = {
 const defaultSettings = (): AppSettings => ({
   passPercent: 50,
   defaultMax: 20,
+  examMax: 100,
   paperMax: {},
   noncoreOrder: {
     1: [...DEFAULT_NONCORE_ORDER],
@@ -232,7 +234,11 @@ export function useAssessments() {
 
 export function useMaxOf() {
   const settings = useAppStore((s) => s.settings);
-  return (id: string) => settings.paperMax[id] ?? settings.defaultMax;
+  return (id: string) => {
+    if (settings.paperMax[id] != null) return settings.paperMax[id]!;
+    if (/-T[12]A[12]$/.test(id)) return settings.examMax ?? 100;
+    return settings.defaultMax;
+  };
 }
 
 export function padClass(code: ClassCode): Student[] {

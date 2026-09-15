@@ -9,22 +9,28 @@ import {
   STAGES,
   SCHOOL_NAME,
   SCHOOL_YEAR,
+  FORMAL_BY_STAGE,
   assessmentsFor,
+  paperHeading,
+  paperLabel,
+  paperSubheading,
+  sortPapers,
   type AssessmentDef,
   type StageId,
 } from "@/lib/calendar";
 import { downloadText, exportClassCsv } from "@/lib/csv";
-import { fmt1, fmtPct, isoToShort, signed } from "@/lib/format";
+import { fmt1, fmtPct, signed } from "@/lib/format";
 import { parseRoster } from "@/lib/paste";
 import {
   computeClass,
   isActive,
+  progressOf,
   quizResult,
   type ClassCompute,
   type ScoreEntry,
   type Student,
 } from "@/lib/progress";
-import { LANGUAGE_SUBJECTS, NONCORE_SUBJECTS, SUBJECTS, subjectShort, type SubjectId } from "@/lib/subjects";
+import { LANGUAGE_SUBJECTS, NONCORE_SUBJECTS, subjectShort, type SubjectId } from "@/lib/subjects";
 import { useAppStore, useAssessments, useMaxOf, type StudentPatch } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -54,12 +60,16 @@ export function ClassSheet({ code }: { code: ClassCode }) {
   const [rosterText, setRosterText] = useState("");
   const [rosterMsg, setRosterMsg] = useState("");
 
+  const isLang = subject === "chi" || subject === "eng";
+
   const papers = useMemo(() => {
-    return assessmentsFor(all, {
-      form,
-      subject,
-      stage: stage === "all" ? undefined : stage,
-    }).sort((a, b) => a.date.localeCompare(b.date));
+    return sortPapers(
+      assessmentsFor(all, {
+        form,
+        subject,
+        stage: stage === "all" ? undefined : stage,
+      }),
+    );
   }, [all, form, subject, stage]);
 
   const classPapers = useMemo(
@@ -83,7 +93,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
     const out: InputCol[] = [{ kind: "classno" }, { kind: "chname" }, { kind: "regno" }];
     for (const a of papers) {
       out.push({ kind: "raw", id: a.id });
-      if (!taMode) out.push({ kind: "retake", id: a.id });
+      if (!taMode && a.group !== "formal") out.push({ kind: "retake", id: a.id });
     }
     return out;
   }, [papers, taMode]);
@@ -156,6 +166,18 @@ export function ClassSheet({ code }: { code: ClassCode }) {
     setRosterText("");
   }
 
+  const progressLabel = isLang
+    ? stage === "all"
+      ? "進步指數"
+      : "階段進步"
+    : "測考−階段";
+
+  const formulaHint = isLang
+    ? "中文、英文分開輸入、分開分析。進步指數＝該科連續兩次課後小測百分率差的平均（需至少兩次有分）。"
+    : stage === "all"
+      ? "非核心科目在課後評估旁輸入測驗／考試。T1A1 對第一階段、T1A2 對第二階段、T2A1 對第三階段、T2A2 對第四階段。進步＝測考% − 該階段課後評估%。"
+      : `${FORMAL_BY_STAGE[stage].short} ${FORMAL_BY_STAGE[stage].name} 相對${STAGES[stage - 1]?.name}課後評估。進步＝測考% − 階段%。測考欄無重測。`;
+
   return (
     <div className="flex flex-col gap-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -218,21 +240,49 @@ export function ClassSheet({ code }: { code: ClassCode }) {
         <MiniStat label="待重測" value={String(stats.need)} />
       </div>
 
-      <div className="flex flex-wrap gap-2 print:hidden">
-        {SUBJECTS.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => setSubject(s.id)}
-            className={cn(
-              "h-9 rounded-md px-3 text-sm",
-              subject === s.id
-                ? "bg-primary text-primary-foreground"
-                : "bg-card text-muted-foreground hover:bg-muted",
-            )}
-          >
-            {s.short}
-          </button>
-        ))}
+      <div className="flex flex-col gap-2 print:hidden">
+        <div>
+          <p className="mb-1 px-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            語文小測（分開輸入、分開分析）
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {LANGUAGE_SUBJECTS.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSubject(s.id)}
+                className={cn(
+                  "h-9 rounded-md px-3 text-sm",
+                  subject === s.id
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {s.short}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="mb-1 px-0.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            非核心 · 課後評估＋測驗／考試
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {NONCORE_SUBJECTS.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSubject(s.id)}
+                className={cn(
+                  "h-9 rounded-md px-3 text-sm",
+                  subject === s.id
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {s.short}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
       <div className="flex flex-wrap gap-2 print:hidden">
         <button
@@ -254,9 +304,12 @@ export function ClassSheet({ code }: { code: ClassCode }) {
             )}
           >
             {s.name}
+            {!isLang ? ` · ${FORMAL_BY_STAGE[s.id].short}` : ""}
           </button>
         ))}
       </div>
+
+      <p className="text-xs text-muted-foreground print:hidden">{formulaHint}</p>
 
       <Card className="print:hidden">
         <CardContent className="space-y-3 pt-5">
@@ -310,28 +363,37 @@ export function ClassSheet({ code }: { code: ClassCode }) {
               <th className="sticky left-0 z-10 bg-primary px-2 py-2 text-left font-medium">班號</th>
               <th className="sticky left-10 z-10 bg-primary px-2 py-2 text-left font-medium">姓名</th>
               <th className="px-2 py-2 text-left font-medium">學號</th>
-              {papers.map((a) => (
-                <th key={a.id} className="px-1 py-2 text-center font-medium">
-                  <div>{isoToShort(a.date)}</div>
-                  <div className="flex items-center justify-center gap-0.5 font-normal text-[11px] opacity-90">
-                    <input
-                      className="sheet-input sheet-input-on-primary w-10"
-                      inputMode="numeric"
-                      defaultValue={maxOf(a.id)}
-                      onBlur={(e) => {
-                        const n = Number(e.target.value);
-                        if (Number.isFinite(n) && n > 0) setPaperMax(a.id, n);
-                      }}
-                      aria-label={`${isoToShort(a.date)} 滿分`}
-                    />
-                    分
-                  </div>
-                  {!taMode && <div className="font-normal text-[11px] opacity-80">重測</div>}
-                </th>
-              ))}
+              {papers.map((a) => {
+                const formal = a.group === "formal";
+                return (
+                  <th
+                    key={a.id}
+                    className={cn("px-1 py-2 text-center font-medium", formal && "bg-gold text-gold-fg")}
+                  >
+                    <div>{paperHeading(a)}</div>
+                    <div className="font-normal text-[10px] opacity-80">{paperSubheading(a)}</div>
+                    <div className="flex items-center justify-center gap-0.5 font-normal text-[11px] opacity-90">
+                      <input
+                        className="sheet-input sheet-input-on-primary w-10"
+                        inputMode="numeric"
+                        defaultValue={maxOf(a.id)}
+                        onBlur={(e) => {
+                          const n = Number(e.target.value);
+                          if (Number.isFinite(n) && n > 0) setPaperMax(a.id, n);
+                        }}
+                        aria-label={`${paperLabel(a)} 滿分`}
+                      />
+                      分
+                    </div>
+                    {!taMode && !formal && (
+                      <div className="font-normal text-[11px] opacity-80">重測</div>
+                    )}
+                  </th>
+                );
+              })}
               <th className="px-2 py-2 text-center font-medium">階段%</th>
               <th className="px-2 py-2 text-center font-medium">標準分</th>
-              <th className="px-2 py-2 text-center font-medium">進步</th>
+              <th className="px-2 py-2 text-center font-medium">{progressLabel}</th>
               <th className="px-2 py-2 text-center font-medium">達標</th>
             </tr>
           </thead>
@@ -341,11 +403,11 @@ export function ClassSheet({ code }: { code: ClassCode }) {
               const prog = computed.byStudent.get(s.id);
               const latestStage: StageId =
                 stage === "all"
-                  ? (papers.at(-1)?.stage ?? 1)
+                  ? (papers.filter((a) => a.group !== "formal").at(-1)?.stage ?? 1)
                   : stage;
               const sk = `${subject}-${latestStage}`;
               const sr = prog?.stages[sk];
-              const delta = prog?.subjectDelta[subject] ?? null;
+              const delta = progressOf(prog, subject, stage);
               return (
                 <tr
                   key={s.id}
@@ -427,9 +489,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
       </div>
 
       <p className="text-xs text-muted-foreground print:hidden">
-        語文科（{LANGUAGE_SUBJECTS.map((s) => s.short).join("、")}
-        ）每階段多次小測取平均百分率；非核心科目（
-        {NONCORE_SUBJECTS.map((s) => s.short).join("、")}）每階段一次。空白格不計入平均。
+        語文科每週小測取連續升幅為進步指數，中文與英文互不混合。非核心科目每階段一次課後評估，再輸入對應測驗／考試（預設滿分 100），頒獎取測考相對該階段進步最大的三名。空白格不計入。
       </p>
 
       <StudentReports
@@ -439,6 +499,8 @@ export function ClassSheet({ code }: { code: ClassCode }) {
         computed={computed}
         maxOf={maxOf}
         pass={settings.passPercent}
+        subject={subject}
+        stage={stage}
       />
     </div>
   );
@@ -451,6 +513,8 @@ function StudentReports({
   computed,
   maxOf,
   pass,
+  subject,
+  stage,
 }: {
   code: ClassCode;
   roster: Student[];
@@ -458,6 +522,8 @@ function StudentReports({
   computed: ClassCompute;
   maxOf: (id: string) => number;
   pass: number;
+  subject: SubjectId;
+  stage: StageId | "all";
 }) {
   const active = roster.filter(isActive);
   return (
@@ -470,6 +536,7 @@ function StudentReports({
       ) : (
         active.map((s) => {
           const prog = computed.byStudent.get(s.id);
+          const delta = progressOf(prog, subject, stage);
           return (
             <article
               key={s.id}
@@ -486,7 +553,7 @@ function StudentReports({
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-muted-foreground">
-                    <th className="py-1">日期</th>
+                    <th className="py-1">項目</th>
                     <th className="py-1">科目</th>
                     <th className="py-1 text-right">得分</th>
                     <th className="py-1 text-right">重測</th>
@@ -497,19 +564,26 @@ function StudentReports({
                 <tbody>
                   {papers.map((a) => {
                     const r = quizResult(s, a, maxOf(a.id), pass);
+                    const formal = a.group === "formal";
                     return (
                       <tr key={a.id} className="border-t border-border/60">
-                        <td className="py-1 tabular-nums">{isoToShort(a.date)}</td>
+                        <td className="py-1 tabular-nums">{paperLabel(a)}</td>
                         <td className="py-1">{subjectShort(a.subject)}</td>
                         <td className="py-1 text-right tabular-nums">
                           {r.raw == null ? "—" : `${r.raw}/${r.max}`}
                         </td>
                         <td className="py-1 text-right tabular-nums">
-                          {r.retake == null ? "—" : r.retake}
+                          {formal ? "—" : r.retake == null ? "—" : r.retake}
                         </td>
                         <td className="py-1 text-right tabular-nums">{fmtPct(r.pct)}</td>
                         <td className="py-1 text-center">
-                          {r.passed == null ? "—" : r.passed ? "達標" : "重測"}
+                          {formal
+                            ? "測考"
+                            : r.passed == null
+                              ? "—"
+                              : r.passed
+                                ? "達標"
+                                : "重測"}
                         </td>
                       </tr>
                     );
@@ -517,12 +591,13 @@ function StudentReports({
                 </tbody>
               </table>
               <p className="mt-3 text-xs text-muted-foreground">
-                進步指數 {signed(prog?.overall)}
+                {subject === "chi" || subject === "eng" ? "語文進步指數 " : "測考相對階段 "}
+                {signed(delta)}
                 {prog
-                  ? "　" +
-                    SUBJECTS.filter((sub) => prog.subjectDelta[sub.id] != null)
-                      .map((sub) => `${subjectShort(sub.id)} ${signed(prog.subjectDelta[sub.id])}`)
-                      .join("　")
+                  ? "　中文 " +
+                    signed(prog.langProgress.chi) +
+                    "　英文 " +
+                    signed(prog.langProgress.eng)
                   : ""}
               </p>
             </article>
@@ -567,9 +642,12 @@ function ScorePair({
 }) {
   const entry = student.scores[paper.id] ?? { raw: "", retake: "" };
   const r = quizResult(student, paper, max, pass);
+  const formal = paper.group === "formal";
   const bg =
     r.pct == null
-      ? ""
+      ? formal
+        ? "bg-gold/10"
+        : ""
       : r.passed
         ? "bg-pass/70 text-pass-fg"
         : "bg-fail/80 text-fail-fg";
@@ -582,9 +660,9 @@ function ScorePair({
         col={rawCol}
         onChange={(v) => onChange({ raw: v })}
         onPasteGrid={onPasteGrid}
-        aria-label={`${student.chname || "學生"} ${isoToShort(paper.date)} 分數`}
+        aria-label={`${student.chname || "學生"} ${paperLabel(paper)} 分數`}
       />
-      {!taMode && (
+      {!taMode && !formal && (
         <CellInput
           className="opacity-80"
           inputMode="decimal"
@@ -593,7 +671,7 @@ function ScorePair({
           col={retakeCol}
           onChange={(v) => onChange({ retake: v })}
           onPasteGrid={onPasteGrid}
-          aria-label={`${student.chname || "學生"} ${isoToShort(paper.date)} 重測`}
+          aria-label={`${student.chname || "學生"} ${paperLabel(paper)} 重測`}
         />
       )}
     </td>

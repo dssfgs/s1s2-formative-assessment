@@ -36,14 +36,16 @@ export function parseNum(v: string | number | undefined | null): number | null {
 
 export function isoToLabel(iso: string) {
   const [y, m, d] = iso.split("-");
-  if (!y || !m || !d) return iso;
+  if (!y || !m || !d || !/^\d{4}$/.test(y)) return iso;
   const year = Number(y);
   const mm = Number(m);
   const dd = Number(d);
+  if (!Number.isFinite(mm) || !Number.isFinite(dd)) return iso;
   return `${dd}/${mm}${year === 2027 ? "（下）" : ""}`;
 }
 
 export function isoToShort(iso: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
   const [, m, d] = iso.split("-");
   return `${Number(d)}/${Number(m)}`;
 }

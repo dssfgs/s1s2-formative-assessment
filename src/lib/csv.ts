@@ -1,6 +1,6 @@
-import type { AssessmentDef } from "./calendar";
+import type { AssessmentDef, FormalKind } from "./calendar";
+import { paperHeading } from "./calendar";
 import { ALL_CLASSES, isClassCode, type ClassCode } from "./classes";
-import { isoToShort } from "./format";
 import type { Student } from "./progress";
 import { subjectShort } from "./subjects";
 
@@ -45,7 +45,7 @@ export function parseScoreCsv(text: string, assessments: AssessmentDef[]): Impor
   const iName = find("姓名", "chname", "學生");
   const iReg = find("學號", "regno", "reg");
   const iSub = find("科目", "學科", "subject");
-  const iDate = find("日期", "date");
+  const iDate = find("日期", "date", "測考", "T1A", "T2A");
   const iRaw = find("分數", "得分", "raw", "成績");
   const iRetake = find("重測", "retake");
   const looksHeader = iClass >= 0 && iNo >= 0;
@@ -66,14 +66,32 @@ export function parseScoreCsv(text: string, assessments: AssessmentDef[]): Impor
 
     let assessmentId: string | undefined;
     if (date) {
-      const norm = normalizeDate(date);
-      const hit = assessments.find(
-        (a) =>
-          a.form === (classcode.startsWith("2") ? 2 : 1) &&
-          a.date === norm &&
-          (!subject || a.subject === subject || subject.includes(subjectShort(a.subject))),
-      );
-      assessmentId = hit?.id;
+      const form = classcode.startsWith("2") ? 2 : 1;
+      const kindHit = date.toUpperCase().match(/T[12]A[12]/);
+      if (kindHit) {
+        const kind = kindHit[0] as FormalKind;
+        const hit = assessments.find(
+          (a) =>
+            a.form === form &&
+            a.group === "formal" &&
+            a.formalKind === kind &&
+            (!subject ||
+              a.subject === subject ||
+              subject.includes(subjectShort(a.subject))),
+        );
+        assessmentId = hit?.id;
+      } else {
+        const norm = normalizeDate(date);
+        const hit = assessments.find(
+          (a) =>
+            a.form === form &&
+            a.date === norm &&
+            (!subject ||
+              a.subject === subject ||
+              subject.includes(subjectShort(a.subject))),
+        );
+        assessmentId = hit?.id;
+      }
     }
 
     rows.push({
@@ -116,7 +134,7 @@ function normalizeDate(s: string) {
 export function exportClassCsv(
   students: Student[],
   assessments: AssessmentDef[],
-  maxOf: (id: string) => number,
+  _maxOf: (id: string) => number,
 ) {
   const papers = assessments;
   const head = [
@@ -124,10 +142,11 @@ export function exportClassCsv(
     "班號",
     "學號",
     "姓名",
-    ...papers.flatMap((a) => [
-      `${subjectShort(a.subject)} ${isoToShort(a.date)}`,
-      `${subjectShort(a.subject)} ${isoToShort(a.date)}重測`,
-    ]),
+    ...papers.flatMap((a) => {
+      const label = `${subjectShort(a.subject)} ${paperHeading(a)}`;
+      if (a.group === "formal") return [label];
+      return [label, `${label}重測`];
+    }),
   ];
   const lines = [head.join(",")];
   for (const s of students) {
@@ -135,7 +154,8 @@ export function exportClassCsv(
     const cells = [s.classcode, s.classno, s.regno, csvCell(s.chname)];
     for (const a of papers) {
       const e = s.scores[a.id];
-      cells.push(e?.raw ?? "", e?.retake ?? "");
+      cells.push(e?.raw ?? "");
+      if (a.group !== "formal") cells.push(e?.retake ?? "");
     }
     lines.push(cells.join(","));
   }

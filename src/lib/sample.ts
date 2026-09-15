@@ -89,19 +89,36 @@ function fillClass(
 
     const talent = 48 + unit(hash(ch)) * 38;
     const grit = (unit(hash(ch + "g")) - 0.35) * 18;
+    const langSeq: Record<string, number> = {};
 
     for (const a of assessments) {
       const stageBoost = (a.stage - 1) * grit;
       const jitter = (unit(hash(a.id + ch)) - 0.5) * 16;
       const langBump = a.group === "language" ? 2 : 0;
-      let pct = clamp(talent + stageBoost + jitter + langBump, 18, 98);
+      let seq = 0;
+      if (a.group === "language") {
+        seq = langSeq[a.subject] ?? 0;
+        langSeq[a.subject] = seq + 1;
+      }
+      let pct = clamp(
+        talent + stageBoost + jitter + langBump + seq * (0.55 + Math.max(0, grit) * 0.12),
+        18,
+        98,
+      );
       if (i % 7 === 0 && a.stage === 1) pct = clamp(pct - 22, 12, 70);
       if (i % 5 === 1 && a.stage === 2) pct = clamp(pct + 14, 30, 99);
+      if (a.group === "formal") {
+        pct = clamp(pct + grit * 0.8 + (i % 3 === 0 ? 12 : 3), 22, 99);
+      }
 
-      const max = 20;
+      const max = a.group === "formal" ? 100 : 20;
       const raw = Math.round((pct / 100) * max * 2) / 2;
       const entry = { raw: String(raw), retake: "" };
-      if (raw / max < 0.5 && unit(hash("rt" + a.id + ch)) > 0.35) {
+      if (
+        a.group !== "formal" &&
+        raw / max < 0.5 &&
+        unit(hash("rt" + a.id + ch)) > 0.35
+      ) {
         const better = Math.min(max, raw + 3 + Math.round(unit(hash("b" + ch)) * 4));
         entry.retake = String(better);
       }

@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,10 +6,12 @@ import { ALL_CLASSES, classLabel, formOf, S1_CLASSES, S2_CLASSES, type ClassCode
 import { STAGES, assessmentsFor, type StageId } from "@/lib/calendar";
 import { downloadText } from "@/lib/csv";
 import { fmtPct, signed } from "@/lib/format";
-import { computeClass, isActive, quizResult, type Student } from "@/lib/progress";
-import { SUBJECTS, subjectShort, type SubjectId } from "@/lib/subjects";
+import { computeClass, isActive, progressOf, quizResult, type Student } from "@/lib/progress";
+import { LANGUAGE_SUBJECTS, NONCORE_SUBJECTS, type SubjectId } from "@/lib/subjects";
 import { useAppStore, useAssessments, useMaxOf } from "@/lib/store";
 import { cn } from "@/lib/utils";
+
+export const Route = createFileRoute("/all")({ component: AllPage });
 
 type SortKey = "class" | "pct" | "need" | "progress";
 
@@ -45,7 +47,7 @@ export function AllPage() {
       const viewPapers = assessmentsFor(formPapers, {
         subject: subject === "all" ? undefined : subject,
         stage: stage === "all" ? undefined : stage,
-      });
+      }).filter((a) => (onlyNeed ? a.group !== "formal" : true));
       const computed = computeClass(
         roster[code] ?? [],
         formPapers,
@@ -68,10 +70,7 @@ export function AllPage() {
           if (r.needsRetake) need++;
         }
         const prog = computed.byStudent.get(s.id);
-        const overall =
-          subject === "all"
-            ? (prog?.overall ?? null)
-            : (prog?.subjectDelta[subject] ?? null);
+        const overall = progressOf(prog, subject, stage);
         out.push({
           code,
           student: s,
@@ -126,6 +125,13 @@ export function AllPage() {
     downloadText("全校課後評估.csv", lines.join("\n"));
   }
 
+  const progressHead =
+    subject === "chi" || subject === "eng"
+      ? "語文進步"
+      : subject === "all"
+        ? "語文進步"
+        : "測考−階段";
+
   return (
     <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -135,7 +141,7 @@ export function AllPage() {
           </p>
           <h1 className="font-display text-2xl font-medium tracking-tight">全校總表</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            八班同一畫面。Ruby（中一）／Ann（中二）可按「待重測」篩選後按班號交卷。
+            八班同一畫面。中文、英文分開篩選；非核心可看測考相對階段。Ruby（中一）／Ann（中二）可按「待重測」篩選。
           </p>
         </div>
         <div className="flex gap-2 print:hidden">
@@ -158,11 +164,18 @@ export function AllPage() {
         <Chip active={form === 2} onClick={() => setForm(2)}>
           中二
         </Chip>
-        <span className="mx-1 w-px self-stretch bg-border" />
+      </div>
+      <div className="flex flex-wrap gap-2 print:hidden">
         <Chip active={subject === "all"} onClick={() => setSubject("all")}>
-          各科
+          語文合計
         </Chip>
-        {SUBJECTS.map((s) => (
+        {LANGUAGE_SUBJECTS.map((s) => (
+          <Chip key={s.id} active={subject === s.id} onClick={() => setSubject(s.id)}>
+            {s.short}
+          </Chip>
+        ))}
+        <span className="mx-1 w-px self-stretch bg-border" />
+        {NONCORE_SUBJECTS.map((s) => (
           <Chip key={s.id} active={subject === s.id} onClick={() => setSubject(s.id)}>
             {s.short}
           </Chip>
@@ -211,7 +224,7 @@ export function AllPage() {
                 待重測
               </Th>
               <Th onClick={() => setSort("progress")} active={sort === "progress"}>
-                進步
+                {progressHead}
               </Th>
             </tr>
           </thead>

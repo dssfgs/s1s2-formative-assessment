@@ -1,6 +1,8 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  FORMALS,
   NONCORE_DATES,
   STAGES,
   languageAssessments,
@@ -12,6 +14,7 @@ import { subjectShort } from "@/lib/subjects";
 import { useAssessments } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
+export const Route = createFileRoute("/calendar")({ component: CalendarPage });
 
 export function CalendarPage() {
   const all = useAssessments();
@@ -29,6 +32,27 @@ export function CalendarPage() {
           15:45 前到達課室，達標學生 16:15 後離校。
         </p>
       </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>非核心測驗／考試對照</CardTitle>
+          <CardDescription>
+            班別成績表在課後評估旁輸入測考分數。頒獎取測考相對該階段進步最大的三名。
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-2 sm:grid-cols-2">
+          {FORMALS.map((f) => (
+            <div key={f.kind} className="rounded-md border border-border px-3 py-2 text-sm">
+              <div className="font-medium">
+                {f.short}　{f.name}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                對照 {STAGES[f.stage - 1]?.name}（{STAGES[f.stage - 1]?.period}）
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       {STAGES.map((st) => (
         <StageBlock key={st.id} stage={st.id} today={today} />
@@ -72,6 +96,7 @@ export function CalendarPage() {
 function StageBlock({ stage, today }: { stage: StageId; today: string }) {
   const langs = languageAssessments().filter((a) => a.stage === stage);
   const st = STAGES[stage - 1]!;
+  const formal = FORMALS.find((f) => f.stage === stage);
 
   const groups = [
     { title: "中一 中文（星期一）", items: langs.filter((a) => a.form === 1 && a.subject === "chi") },
@@ -84,7 +109,10 @@ function StageBlock({ stage, today }: { stage: StageId; today: string }) {
     <Card>
       <CardHeader>
         <CardTitle>{st.name}</CardTitle>
-        <CardDescription>{st.period}</CardDescription>
+        <CardDescription>
+          {st.period}
+          {formal ? `　·　測考 ${formal.short} ${formal.name}` : ""}
+        </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-2">
         {groups.map((g) => (

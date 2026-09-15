@@ -1,6 +1,6 @@
 import type { FormLevel } from "./classes";
 import type { SubjectId } from "./subjects";
-import { todayIso } from "./format";
+import { isoToShort, todayIso } from "./format";
 
 export type StageId = 1 | 2 | 3 | 4;
 
@@ -15,6 +15,33 @@ export const STAGES: {
   { id: 4, name: "第四階段", period: "下學期測驗至下學期考試" },
 ];
 
+export type FormalKind = "T1A1" | "T1A2" | "T2A1" | "T2A2";
+
+export const FORMALS: {
+  kind: FormalKind;
+  name: string;
+  short: string;
+  stage: StageId;
+  term: 1 | 2;
+}[] = [
+  { kind: "T1A1", name: "上學期測驗", short: "T1A1", stage: 1, term: 1 },
+  { kind: "T1A2", name: "上學期考試", short: "T1A2", stage: 2, term: 1 },
+  { kind: "T2A1", name: "下學期測驗", short: "T2A1", stage: 3, term: 2 },
+  { kind: "T2A2", name: "下學期考試", short: "T2A2", stage: 4, term: 2 },
+];
+
+export const FORMAL_BY_KIND = Object.fromEntries(FORMALS.map((f) => [f.kind, f])) as Record<
+  FormalKind,
+  (typeof FORMALS)[number]
+>;
+
+export const FORMAL_BY_STAGE = Object.fromEntries(FORMALS.map((f) => [f.stage, f])) as Record<
+  StageId,
+  (typeof FORMALS)[number]
+>;
+
+export type AssessmentGroup = "language" | "noncore" | "formal";
+
 export type AssessmentDef = {
   id: string;
   form: FormLevel;
@@ -22,7 +49,8 @@ export type AssessmentDef = {
   stage: StageId;
   date: string;
   weekday: string;
-  group: "language" | "noncore";
+  group: AssessmentGroup;
+  formalKind?: FormalKind;
 };
 
 type DateSpec = { date: string; weekday: string; stage: StageId };
@@ -199,10 +227,36 @@ export function noncoreAssessments(
   return out;
 }
 
+export function formalId(form: FormLevel, subject: SubjectId, kind: FormalKind) {
+  return `f${form}-${subject}-${kind}`;
+}
+
+/** 非核心科目的測驗／考試欄（T1A1 對第一階段，T1A2 對第二階段，以此類推）。 */
+export function formalAssessments(): AssessmentDef[] {
+  const out: AssessmentDef[] = [];
+  for (const form of [1, 2] as FormLevel[]) {
+    for (const subject of DEFAULT_NONCORE_ORDER) {
+      for (const f of FORMALS) {
+        out.push({
+          id: formalId(form, subject, f.kind),
+          form,
+          subject,
+          stage: f.stage,
+          date: `formal-${f.kind}`,
+          weekday: "",
+          group: "formal",
+          formalKind: f.kind,
+        });
+      }
+    }
+  }
+  return out;
+}
+
 export function allAssessments(
   orderByStage?: Record<StageId, SubjectId[]>,
 ): AssessmentDef[] {
-  return [...languageAssessments(), ...noncoreAssessments(orderByStage)];
+  return [...languageAssessments(), ...noncoreAssessments(orderByStage), ...formalAssessments()];
 }
 
 export function assessmentsFor(
@@ -211,7 +265,7 @@ export function assessmentsFor(
     form?: FormLevel;
     subject?: SubjectId;
     stage?: StageId;
-    group?: "language" | "noncore";
+    group?: AssessmentGroup;
   },
 ) {
   return list.filter((a) => {
@@ -223,9 +277,18 @@ export function assessmentsFor(
   });
 }
 
+export function sortPapers(list: AssessmentDef[]) {
+  return [...list].sort((a, b) => {
+    if (a.stage !== b.stage) return a.stage - b.stage;
+    const rank = (g: AssessmentGroup) => (g === "formal" ? 2 : g === "noncore" ? 1 : 0);
+    if (rank(a.group) !== rank(b.group)) return rank(a.group) - rank(b.group);
+    return a.date.localeCompare(b.date) || a.id.localeCompare(b.id);
+  });
+}
+
 export function upcomingAssessments(list: AssessmentDef[], from = todayIso(), n = 6) {
   return list
-    .filter((a) => a.date >= from)
+    .filter((a) => a.group !== "formal" && a.date >= from)
     .sort((a, b) => a.date.localeCompare(b.date) || a.form - b.form)
     .slice(0, n);
 }
@@ -240,4 +303,29 @@ export function stageOfDate(iso: string): StageId | null {
 
 export function weekdayLabel(w: string) {
   return `星期${w}`;
+}
+
+export function paperLabel(a: AssessmentDef) {
+  if (a.group === "formal") {
+    const f = a.formalKind ? FORMAL_BY_KIND[a.formalKind] : undefined;
+    return f ? `${f.short} ${f.name}` : a.id;
+  }
+  return a.date;
+}
+
+/** 成績表表頭：語文／課後評估用日期，測考用 T1A1 等。 */
+export function paperHeading(a: AssessmentDef) {
+  if (a.group === "formal") {
+    const f = a.formalKind ? FORMAL_BY_KIND[a.formalKind] : undefined;
+    return f?.short ?? a.id;
+  }
+  return isoToShort(a.date);
+}
+
+export function paperSubheading(a: AssessmentDef) {
+  if (a.group === "formal") {
+    const f = a.formalKind ? FORMAL_BY_KIND[a.formalKind] : undefined;
+    return f?.name ?? "";
+  }
+  return a.weekday ? weekdayLabel(a.weekday) : "";
 }

@@ -1,3 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,13 +7,8 @@ import { InstallCard } from "@/components/install-prompt";
 import { STAGES, type StageId } from "@/lib/calendar";
 import { NONCORE_SUBJECTS, subjectShort, type SubjectId } from "@/lib/subjects";
 import { useAppStore } from "@/lib/store";
-import type { ProgressMethod } from "@/lib/progress";
 
-const METHODS: { id: ProgressMethod; name: string; desc: string }[] = [
-  { id: "z", name: "標準分差（建議）", desc: "z 本階段 − z 上一階段，消除卷別難度差異" },
-  { id: "pct", name: "百分率差", desc: "本階段平均% − 上一階段平均%" },
-  { id: "rank", name: "名次進步", desc: "上一階段班內名次 − 本階段名次" },
-];
+export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
 export function SettingsPage() {
   const settings = useAppStore((s) => s.settings);
@@ -24,7 +20,7 @@ export function SettingsPage() {
       <header>
         <h1 className="font-display text-2xl font-medium tracking-tight">設定</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          及格線、滿分與進步公式套用到全校八班。資料仍只存在本機。
+          及格線、滿分套用到全校八班。資料仍只存在本機。
         </p>
       </header>
 
@@ -34,7 +30,7 @@ export function SettingsPage() {
         <CardHeader>
           <CardTitle>達標與滿分</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
+        <CardContent className="grid gap-4 sm:grid-cols-3">
           <div>
             <Label htmlFor="pass">及格百分率</Label>
             <Input
@@ -47,7 +43,7 @@ export function SettingsPage() {
             />
           </div>
           <div>
-            <Label htmlFor="max">預設滿分</Label>
+            <Label htmlFor="max">課後評估預設滿分</Label>
             <Input
               id="max"
               type="number"
@@ -55,31 +51,37 @@ export function SettingsPage() {
               value={settings.defaultMax}
               onChange={(e) => setSettings({ defaultMax: Number(e.target.value) || 20 })}
             />
-            <p className="mt-1 text-xs text-muted-foreground">各次評估可在該班成績表表頭改滿分。</p>
+            <p className="mt-1 text-xs text-muted-foreground">語文小測、非核心課後評估。各次可在表頭改。</p>
+          </div>
+          <div>
+            <Label htmlFor="examMax">測驗／考試預設滿分</Label>
+            <Input
+              id="examMax"
+              type="number"
+              min={1}
+              value={settings.examMax ?? 100}
+              onChange={(e) => setSettings({ examMax: Number(e.target.value) || 100 })}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">T1A1／T1A2／T2A1／T2A2 欄。各次可在表頭改。</p>
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>進步指數公式</CardTitle>
-          <CardDescription>早會頒獎與各科進程使用同一公式。</CardDescription>
+          <CardTitle>進步指數（頒獎用）</CardTitle>
+          <CardDescription>中文、英文分開；非核心以測考對照對應階段。</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {METHODS.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => setSettings({ progressMethod: m.id })}
-              className={`rounded-md border px-4 py-3 text-left text-sm ${
-                settings.progressMethod === m.id
-                  ? "border-primary bg-secondary"
-                  : "border-border bg-card hover:bg-muted"
-              }`}
-            >
-              <div className="font-medium">{m.name}</div>
-              <div className="text-xs text-muted-foreground">{m.desc}</div>
-            </button>
-          ))}
+        <CardContent className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+          <p>
+            <span className="font-medium text-foreground">語文：</span>
+            該科連續兩次課後小測百分率差的平均。中文一條序列、英文一條，不與其他科混合。
+          </p>
+          <p>
+            <span className="font-medium text-foreground">非核心：</span>
+            T1A1 − 第一階段、T1A2 − 第二階段、T2A1 − 第三階段、T2A2 − 第四階段。進步＝測考% − 階段%。
+          </p>
+          <p>成績表仍顯示階段標準分作參考，但不作頒獎依據。詳見「計分規則」。</p>
         </CardContent>
       </Card>
 
