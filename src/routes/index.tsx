@@ -71,6 +71,9 @@ export function Home() {
           <Button asChild variant="outline">
             <Link to="/all">全校總表</Link>
           </Button>
+          <Button asChild variant="outline">
+            <Link to="/settings">安裝到主畫面</Link>
+          </Button>
         </div>
       </header>
 

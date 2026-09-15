@@ -4,21 +4,32 @@
 
 對齊《中一及中二級課後進展性評估指引》，操作習慣接近校本 **WEBSAMS 成績計算器**：Excel／WEBSAMS 名單貼上、格子輸入、方向鍵、CSV 匯出、列印學生報告。
 
-**純前端、本機儲存，不經 Vercel、不經任何伺服器。** 以 GitHub Pages 上線。
+**純前端、本機儲存，不經 Vercel、不經任何伺服器。** 以 GitHub Pages 上線，並可安裝成主畫面 App（PWA）。
 
-## 開啟 GitHub Pages（只需一次）
-
-倉庫 → **Settings → Pages**
-
-1. **Build and deployment → Source** 選 **Deploy from a branch**
-2. Branch 選 `main`，資料夾選 **`/docs`**
-3. Save
-
-約一分鐘後：
+## 網址
 
 **https://dssfgs.github.io/s1s2-formative-assessment/**
 
 學生姓名與分數只存在該瀏覽器（localStorage），**不會**上傳到 GitHub。
+
+## 安裝到主畫面（PWA）
+
+| 裝置 | 做法 |
+|---|---|
+| Android / Windows Chrome | 開啟網址 → 右上選單「安裝應用程式」，或頁面底部「安裝」 |
+| iPhone / iPad | 用 **Safari** 開啟 → 底部分享 → **加入主畫面** |
+| 電腦 Edge | 網址列右側安裝圖示 |
+
+安裝後可離線查看已輸入成績；第一次開啟仍需連網載入頁面。
+
+## 開啟 GitHub Pages（只需一次）
+
+倉庫已設 GitHub Actions：push `main` 後自動建置 `dist` 並發布。亦可手動：
+
+倉庫 → **Settings → Pages**
+
+1. **Build and deployment → Source** 選 **GitHub Actions**（建議），或 **Deploy from a branch** → `main` / **`/docs`**
+2. Save
 
 ## 使用
 
@@ -41,6 +52,7 @@
 - 全校總表、各科進程圖、完整 2026-2027 日程
 - 列印學生一人一頁報告
 - CSV／JSON 備份
+- **PWA：安裝到主畫面、離線開啟、離線橫幅**
 
 ### 公式（標準分差）
 
@@ -58,5 +70,6 @@ npm run dev
 
 ```bash
 npm run build
-# 輸出在 dist/；複製到 docs/ 即可更新 Pages
+# 輸出在 dist/；GitHub Actions 會自動發布
+# 若用 branch /docs：把 dist 複製到 docs/
 ```

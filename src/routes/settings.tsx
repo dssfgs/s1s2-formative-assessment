@@ -2,11 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InstallCard } from "@/components/install-prompt";
 import { STAGES, type StageId } from "@/lib/calendar";
 import { NONCORE_SUBJECTS, subjectShort, type SubjectId } from "@/lib/subjects";
 import { useAppStore } from "@/lib/store";
 import type { ProgressMethod } from "@/lib/progress";
-
 
 const METHODS: { id: ProgressMethod; name: string; desc: string }[] = [
   { id: "z", name: "標準分差（建議）", desc: "z 本階段 − z 上一階段，消除卷別難度差異" },
@@ -27,6 +27,8 @@ export function SettingsPage() {
           及格線、滿分與進步公式套用到全校八班。資料仍只存在本機。
         </p>
       </header>
+
+      <InstallCard />
 
       <Card>
         <CardHeader>

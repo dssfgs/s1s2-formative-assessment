@@ -16,7 +16,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import { S1_CLASSES, S2_CLASSES } from "@/lib/classes";
 import { SCHOOL_NAME, SCHOOL_YEAR } from "@/lib/calendar";
 import { useAppStore } from "@/lib/store";
+import { PwaProvider } from "@/lib/pwa";
 import { cn } from "@/lib/utils";
+import { InstallHeaderButton, InstallPrompt, InstallSpacer } from "@/components/install-prompt";
 
 const NAV = [
   { to: "/", label: "總覽", icon: LayoutGrid },
@@ -34,6 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
 
   return (
+    <PwaProvider>
     <div className="min-h-dvh bg-background text-foreground">
       <a
         href="#main"
@@ -41,6 +44,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         跳至內容
       </a>
+      <InstallPrompt />
       <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur print:hidden">
         <div className="mx-auto flex min-h-14 max-w-[1600px] items-center gap-3 px-4 py-2">
           <button
@@ -63,9 +67,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
             </span>
           </Link>
-          <span className="ml-auto hidden rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground sm:inline">
-            本機儲存 · 無需雲端
-          </span>
+          <InstallHeaderButton />
         </div>
       </header>
 
@@ -135,7 +137,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <ClientGate>{children}</ClientGate>
         </main>
       </div>
+      <InstallSpacer />
     </div>
+    </PwaProvider>
   );
 }
 

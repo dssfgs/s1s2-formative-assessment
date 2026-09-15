@@ -1,0 +1,42 @@
+{
+  "id": "/s1s2-formative-assessment/",
+  "name": "課後進展性評估計算器",
+  "short_name": "進展評估",
+  "description": "香海正覺蓮社佛教梁植偉中學 2026-2027 中一及中二級課後進展性評估。達標重測、進步指數、早會頒獎。資料只存在本機。",
+  "lang": "zh-Hant",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#f3efe4",
+  "theme_color": "#3d4f3a",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "全校總表", "short_name": "總表", "url": "./#/all" },
+    { "name": "進步頒獎", "short_name": "頒獎", "url": "./#/awards" },
+    { "name": "1A 成績表", "short_name": "1A", "url": "./#/class/1A" }
+  ],
+  "categories": ["education", "productivity"],
+  "prefer_related_applications": false
+}
