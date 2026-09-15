@@ -1,4 +1,4 @@
-name: Publish /docs for GitHub Pages
+name: Publish /docs
 
 on:
   push:
@@ -8,12 +8,12 @@ on:
       - "docs-dist/**"
   workflow_dispatch:
 
-# Do not use actions/deploy-pages: it 404s until Pages is already enabled,
-# and this token cannot flip that switch. Publish the static SPA to /docs
-# instead; GitHub then serves it from "Deploy from a branch → main /docs".
+# Project Pages cannot be enabled by API (403). The live site is the user
+# site https://dssfgs.github.io/s1s2-formative-assessment/ (dssfgs.github.io).
+# This job keeps /docs in this repo in sync so branch Pages also works
+# if you later turn it on under Settings → Pages → Deploy from a branch.
 permissions:
   contents: write
-  pages: write
 
 concurrency:
   group: pages-docs
@@ -47,27 +47,3 @@ jobs:
             git commit -m "chore: refresh GitHub Pages /docs [skip ci]"
             git push
           fi
-      - name: Enable Pages from main /docs
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set +e
-          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages" \
-            -H "Accept: application/vnd.github+json" \
-            --input - <<'EOF'
-          {
-            "build_type": "legacy",
-            "source": { "branch": "main", "path": "/docs" }
-          }
-          EOF
-          gh api --method PUT "repos/${GITHUB_REPOSITORY}/pages" \
-            -H "Accept: application/vnd.github+json" \
-            --input - <<'EOF'
-          {
-            "build_type": "legacy",
-            "source": { "branch": "main", "path": "/docs" }
-          }
-          EOF
-          echo "--- pages status ---"
-          gh api "repos/${GITHUB_REPOSITORY}/pages" || true
