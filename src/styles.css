@@ -114,3 +114,18 @@
 .sheet-input-on-primary {
   color: inherit;
 }
+
+.sheet-input-max {
+  min-width: 3.25rem;
+  height: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-input);
+  color: var(--color-input-fg);
+  font-weight: 600;
+}
+.sheet-input-max:focus {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 0;
+  background: #fff;
+}

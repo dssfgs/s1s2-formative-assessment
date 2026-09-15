@@ -1,6 +1,6 @@
 import { ClipboardPaste, Plus, Printer } from "lucide-react";
-import { useMemo, useState } from "react";
-import { CellInput } from "@/components/cell-input";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { CellInput, focusCell } from "@/components/cell-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,7 +47,6 @@ export function ClassSheet({ code }: { code: ClassCode }) {
   const settings = useAppStore((s) => s.settings);
   const setStudent = useAppStore((s) => s.setStudent);
   const setScore = useAppStore((s) => s.setScore);
-  const setPaperMax = useAppStore((s) => s.setPaperMax);
   const applyRoster = useAppStore((s) => s.applyRoster);
   const applyStudentPatches = useAppStore((s) => s.applyStudentPatches);
   const addRows = useAppStore((s) => s.addRows);
@@ -352,7 +351,8 @@ export function ClassSheet({ code }: { code: ClassCode }) {
       </Card>
 
       <p className="text-xs text-muted-foreground print:hidden">
-        輸入後按 <kbd className="rounded border border-border px-1">Enter</kbd> 跳到下一位同一欄；
+        表頂「滿分」列可改每一次評估的滿分（同級各班同一份卷共用，例如 1A 與 1B）。輸入分數後按{" "}
+        <kbd className="rounded border border-border px-1">Enter</kbd> 跳到下一位同一欄；
         Shift+Enter 往上。從 Excel 複製一整欄分數，點本表該欄第一格再 Ctrl+V。
       </p>
 
@@ -372,19 +372,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
                   >
                     <div>{paperHeading(a)}</div>
                     <div className="font-normal text-[10px] opacity-80">{paperSubheading(a)}</div>
-                    <div className="flex items-center justify-center gap-0.5 font-normal text-[11px] opacity-90">
-                      <input
-                        className="sheet-input sheet-input-on-primary w-10"
-                        inputMode="numeric"
-                        defaultValue={maxOf(a.id)}
-                        onBlur={(e) => {
-                          const n = Number(e.target.value);
-                          if (Number.isFinite(n) && n > 0) setPaperMax(a.id, n);
-                        }}
-                        aria-label={`${paperLabel(a)} 滿分`}
-                      />
-                      分
-                    </div>
+                    <div className="font-normal text-[11px] opacity-90">滿分 {maxOf(a.id)}</div>
                     {!taMode && !formal && (
                       <div className="font-normal text-[11px] opacity-80">重測</div>
                     )}
@@ -395,6 +383,29 @@ export function ClassSheet({ code }: { code: ClassCode }) {
               <th className="px-2 py-2 text-center font-medium">標準分</th>
               <th className="px-2 py-2 text-center font-medium">{progressLabel}</th>
               <th className="px-2 py-2 text-center font-medium">達標</th>
+            </tr>
+            <tr className="bg-secondary text-secondary-foreground">
+              <th className="sticky left-0 z-10 bg-secondary px-2 py-1.5 text-left text-xs font-medium">
+                滿分
+              </th>
+              <th className="sticky left-10 z-10 bg-secondary px-2 py-1.5" />
+              <th className="px-2 py-1.5" />
+              {papers.map((a) => (
+                <td
+                  key={a.id}
+                  className={cn("px-0.5 py-1 text-center", a.group === "formal" && "bg-gold/20")}
+                >
+                  <MaxInput
+                    id={a.id}
+                    max={maxOf(a.id)}
+                    col={cols.findIndex((c) => c.kind === "raw" && c.id === a.id)}
+                    label={paperLabel(a)}
+                  />
+                </td>
+              ))}
+              <td colSpan={4} className="px-2 py-1 text-left text-[11px] font-normal text-muted-foreground">
+                同級各班同一份卷共用滿分
+              </td>
             </tr>
           </thead>
           <tbody>
@@ -614,6 +625,83 @@ function MiniStat({ label, value }: { label: string; value: string }) {
       <p className="text-[11px] text-muted-foreground">{label}</p>
       <p className="font-medium tabular-nums">{value}</p>
     </div>
+  );
+}
+
+function MaxInput({
+  id,
+  max,
+  col,
+  label,
+}: {
+  id: string;
+  max: number;
+  col: number;
+  label: string;
+}) {
+  const setPaperMax = useAppStore((s) => s.setPaperMax);
+  const box = useRef<HTMLInputElement>(null);
+  const display = String(max);
+
+  useEffect(() => {
+    if (document.activeElement === box.current) return;
+    if (box.current && box.current.value !== display) box.current.value = display;
+  }, [display, id]);
+
+  function commit(raw: string) {
+    const n = Number(raw.trim());
+    if (Number.isFinite(n) && n > 0) {
+      if (n !== max) setPaperMax(id, n);
+      return;
+    }
+    if (box.current) box.current.value = display;
+  }
+
+  function onKey(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === "ArrowDown") {
+      e.preventDefault();
+      commit(e.currentTarget.value);
+      focusCell(0, col);
+      return;
+    }
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      commit(e.currentTarget.value);
+      const prev = document.querySelector<HTMLInputElement>(
+        `input[data-r="-1"][data-c="${col - 1}"], input[data-r="-1"][data-c="${col - 2}"]`,
+      );
+      if (prev) {
+        prev.focus();
+        prev.select();
+      }
+      return;
+    }
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      commit(e.currentTarget.value);
+      const next = document.querySelector<HTMLInputElement>(
+        `input[data-r="-1"][data-c="${col + 1}"], input[data-r="-1"][data-c="${col + 2}"]`,
+      );
+      if (next) {
+        next.focus();
+        next.select();
+      }
+    }
+  }
+
+  return (
+    <input
+      ref={box}
+      data-r={-1}
+      data-c={col}
+      className="sheet-input sheet-input-max"
+      inputMode="numeric"
+      defaultValue={display}
+      onBlur={(e) => commit(e.target.value)}
+      onKeyDown={onKey}
+      onFocus={(e) => e.currentTarget.select()}
+      aria-label={`${label} 滿分`}
+    />
   );
 }
 

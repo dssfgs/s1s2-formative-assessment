@@ -51,7 +51,7 @@ export function SettingsPage() {
               value={settings.defaultMax}
               onChange={(e) => setSettings({ defaultMax: Number(e.target.value) || 20 })}
             />
-            <p className="mt-1 text-xs text-muted-foreground">語文小測、非核心課後評估。各次可在表頭改。</p>
+            <p className="mt-1 text-xs text-muted-foreground">語文小測、非核心課後評估。各次可在成績表「滿分」列改。</p>
           </div>
           <div>
             <Label htmlFor="examMax">測驗／考試預設滿分</Label>
@@ -62,7 +62,7 @@ export function SettingsPage() {
               value={settings.examMax ?? 100}
               onChange={(e) => setSettings({ examMax: Number(e.target.value) || 100 })}
             />
-            <p className="mt-1 text-xs text-muted-foreground">T1A1／T1A2／T2A1／T2A2 欄。各次可在表頭改。</p>
+            <p className="mt-1 text-xs text-muted-foreground">T1A1／T1A2／T2A1／T2A2 欄。各次可在成績表「滿分」列改。</p>
           </div>
         </CardContent>
       </Card>
