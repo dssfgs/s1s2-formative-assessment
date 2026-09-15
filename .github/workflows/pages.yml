@@ -1,35 +1,73 @@
-name: Deploy GitHub Pages
+name: Publish /docs for GitHub Pages
+
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "docs-dist/**"
   workflow_dispatch:
+
+# Do not use actions/deploy-pages: it 404s until Pages is already enabled,
+# and this token cannot flip that switch. Publish the static SPA to /docs
+# instead; GitHub then serves it from "Deploy from a branch → main /docs".
 permissions:
-  contents: read
+  contents: write
   pages: write
-  id-token: write
+
 concurrency:
-  group: pages
+  group: pages-docs
   cancel-in-progress: true
+
 jobs:
-  build:
+  publish-docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Copy dist into docs
+        run: |
+          rm -rf docs
+          mkdir -p docs
+          cp -a dist/. docs/
+          touch docs/.nojekyll
+      - name: Commit /docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if git diff --staged --quiet; then
+            echo "docs already current"
+          else
+            git commit -m "chore: refresh GitHub Pages /docs [skip ci]"
+            git push
+          fi
+      - name: Enable Pages from main /docs
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/pages" \
+            -H "Accept: application/vnd.github+json" \
+            --input - <<'EOF'
+          {
+            "build_type": "legacy",
+            "source": { "branch": "main", "path": "/docs" }
+          }
+          EOF
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/pages" \
+            -H "Accept: application/vnd.github+json" \
+            --input - <<'EOF'
+          {
+            "build_type": "legacy",
+            "source": { "branch": "main", "path": "/docs" }
+          }
+          EOF
+          echo "--- pages status ---"
+          gh api "repos/${GITHUB_REPOSITORY}/pages" || true

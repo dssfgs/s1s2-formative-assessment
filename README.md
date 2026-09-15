@@ -24,12 +24,18 @@
 
 ## 開啟 GitHub Pages（只需一次）
 
-倉庫已設 GitHub Actions：push `main` 後自動建置 `dist` 並發布。亦可手動：
+GitHub **不會**允許 Action／API 代你開 Pages，必須由倉庫擁有者在網頁按一次。
 
-倉庫 → **Settings → Pages**
+**不要選 GitHub Actions**（那個來源會 404：`Failed to create deployment`）。請改用分支：
 
-1. **Build and deployment → Source** 選 **GitHub Actions**（建議），或 **Deploy from a branch** → `main` / **`/docs`**
-2. Save
+1. 打開 [Settings → Pages](https://github.com/dssfgs/s1s2-formative-assessment/settings/pages)
+2. **Build and deployment → Source** 選 **Deploy from a branch**
+3. Branch：**main**，資料夾：**/docs**
+4. **Save**
+
+約 1 分鐘後上面的網址會亮起。之後每次 push `main`，Actions 會自動把新版本寫進 `/docs`，不用再改設定。
+
+若先前選過 **GitHub Actions**，請改回 **Deploy from a branch** → `main` / `/docs`，錯誤就會消失。
 
 ## 使用
 
@@ -84,6 +90,5 @@ npm run dev
 
 ```bash
 npm run build
-# 輸出在 dist/；GitHub Actions 會自動發布
-# 若用 branch /docs：把 dist 複製到 docs/
+# 輸出在 dist/；GitHub Actions 會複製到 docs/ 供 Pages 發佈
 ```
