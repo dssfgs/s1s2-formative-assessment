@@ -21,6 +21,10 @@ export type Student = {
   regno: string;
   chname: string;
   enname: string;
+  sex?: string;
+  chiGroup?: string;
+  engGroup?: string;
+  mathGroup?: string;
   scores: Record<string, ScoreEntry>;
 };
 

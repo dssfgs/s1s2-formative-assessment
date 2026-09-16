@@ -8,9 +8,10 @@ import {
 } from "./calendar";
 import { emptyStudent, type ProgressMethod, type ScoreEntry, type Student } from "./progress";
 import type { RosterRow } from "./paste";
-import { makeDemoRoster, makeEmptyRoster } from "./sample";
+import { makeDemoRoster, makeEmptyRoster, makeOfficialRoster } from "./sample";
 import type { SubjectId } from "./subjects";
 import type { ImportRow } from "./csv";
+import { OFFICIAL_COUNT } from "./roster-2627";
 
 export type AppSettings = {
   passPercent: number;
@@ -52,8 +53,12 @@ type State = {
   setNoncoreOrder: (stage: StageId, order: SubjectId[]) => void;
   applyRoster: (code: ClassCode, rows: RosterRow[]) => number;
   applyStudentPatches: (code: ClassCode, patches: StudentPatch[]) => void;
+  applyScoresByStudent: (
+    items: { studentId: string; scores: Record<string, Partial<ScoreEntry>> }[],
+  ) => void;
   addRows: (code: ClassCode, n?: number) => void;
   loadDemo: () => void;
+  loadOfficialRoster: () => number;
   resetAll: () => void;
   importRows: (rows: ImportRow[]) => { students: number; scores: number };
   replaceRoster: (roster: Record<ClassCode, Student[]>) => void;
@@ -78,7 +83,7 @@ function padClassno(v: string) {
 export const useAppStore = create<State>()(
   persist(
     (set) => ({
-      roster: makeEmptyRoster(),
+      roster: makeOfficialRoster(),
       settings: defaultSettings(),
       hydrated: false,
       setStudent: (code, index, patch) =>
@@ -170,6 +175,33 @@ export const useAppStore = create<State>()(
           }
           return { roster: { ...st.roster, [code]: list } };
         }),
+      applyScoresByStudent: (items) =>
+        set((st) => {
+          if (!items.length) return st;
+          const loc = new Map<string, { code: ClassCode; idx: number }>();
+          for (const code of ALL_CLASSES) {
+            (st.roster[code] ?? []).forEach((s, i) => loc.set(s.id, { code, idx: i }));
+          }
+          const lists = {} as Partial<Record<ClassCode, Student[]>>;
+          for (const item of items) {
+            const at = loc.get(item.studentId);
+            if (!at) continue;
+            if (!lists[at.code]) lists[at.code] = cloneList(st.roster[at.code] ?? []);
+            const list = lists[at.code]!;
+            const cur = list[at.idx];
+            if (!cur) continue;
+            const nextScores = { ...cur.scores };
+            for (const [id, entry] of Object.entries(item.scores)) {
+              nextScores[id] = {
+                ...(nextScores[id] ?? { raw: "", retake: "" }),
+                ...entry,
+              };
+            }
+            list[at.idx] = { ...cur, scores: nextScores };
+          }
+          if (!Object.keys(lists).length) return st;
+          return { roster: { ...st.roster, ...lists } };
+        }),
       addRows: (code, n = 10) =>
         set((st) => {
           const list = (st.roster[code] ?? []).slice();
@@ -177,6 +209,10 @@ export const useAppStore = create<State>()(
           return { roster: { ...st.roster, [code]: list } };
         }),
       loadDemo: () => set({ roster: makeDemoRoster() }),
+      loadOfficialRoster: () => {
+        set((st) => ({ roster: makeOfficialRoster(st.roster) }));
+        return OFFICIAL_COUNT;
+      },
       resetAll: () => set({ roster: makeEmptyRoster(), settings: defaultSettings() }),
       importRows: (rows) => {
         let students = 0;

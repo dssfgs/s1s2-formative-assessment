@@ -1,3 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,12 +12,14 @@ import {
 } from "@/lib/csv";
 import { useAppStore, useAssessments, useMaxOf } from "@/lib/store";
 
+export const Route = createFileRoute("/import")({ component: ImportPage });
 
 export function ImportPage() {
   const roster = useAppStore((s) => s.roster);
   const importRows = useAppStore((s) => s.importRows);
   const replaceRoster = useAppStore((s) => s.replaceRoster);
   const loadDemo = useAppStore((s) => s.loadDemo);
+  const loadOfficialRoster = useAppStore((s) => s.loadOfficialRoster);
   const resetAll = useAppStore((s) => s.resetAll);
   const all = useAssessments();
   const maxOf = useMaxOf();
@@ -130,7 +133,16 @@ export function ImportPage() {
             >
               下載 JSON 備份
             </Button>
-            <Button variant="gold" onClick={loadDemo}>
+            <Button
+              variant="gold"
+              onClick={() => {
+                const n = loadOfficialRoster();
+                setMsg(`已載入本學年分組名單 ${n} 人（已有分數按姓名保留）。`);
+              }}
+            >
+              載入 2026-2027 分組名單
+            </Button>
+            <Button variant="outline" onClick={loadDemo}>
               載入 1A／2A 示範
             </Button>
             <Button

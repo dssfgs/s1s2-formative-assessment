@@ -1,6 +1,8 @@
 import { ClipboardPaste, Plus, Printer } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { CellInput, focusCell } from "@/components/cell-input";
+import { useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { CellInput } from "@/components/cell-input";
+import { MaxInput, MiniStat, ScorePair } from "@/components/sheet-cells";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +33,7 @@ import {
   type Student,
 } from "@/lib/progress";
 import { LANGUAGE_SUBJECTS, NONCORE_SUBJECTS, subjectShort, type SubjectId } from "@/lib/subjects";
+import { groupField, groupShort, groupsInClass, type StreamId } from "@/lib/groups";
 import { useAppStore, useAssessments, useMaxOf, type StudentPatch } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -60,6 +63,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
   const [rosterMsg, setRosterMsg] = useState("");
 
   const isLang = subject === "chi" || subject === "eng";
+  const classGroups = isLang ? groupsInClass(code, subject as StreamId) : [];
 
   const papers = useMemo(() => {
     return sortPapers(
@@ -310,6 +314,25 @@ export function ClassSheet({ code }: { code: ClassCode }) {
 
       <p className="text-xs text-muted-foreground print:hidden">{formulaHint}</p>
 
+      {isLang && classGroups.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
+          <span className="text-xs text-muted-foreground">本班{subject === "chi" ? "中文" : "英文"}上課組：</span>
+          {classGroups.map((g) => (
+            <Link
+              key={g.id}
+              to="/group/$subject/$code"
+              params={{ subject, code: g.id }}
+              className={cn(
+                "h-8 rounded-md px-3 text-xs leading-8",
+                g.id === code ? "bg-secondary text-secondary-foreground" : "bg-card hover:bg-muted",
+              )}
+            >
+              {groupShort(g.id)} · {g.n}人
+            </Link>
+          ))}
+        </div>
+      ) : null}
+
       <Card className="print:hidden">
         <CardContent className="space-y-3 pt-5">
           <div>
@@ -445,6 +468,11 @@ export function ClassSheet({ code }: { code: ClassCode }) {
                       onPasteGrid={onPasteGrid}
                       aria-label="姓名"
                     />
+                    {isLang && groupField(s, subject as StreamId) && groupField(s, subject as StreamId) !== code ? (
+                      <span className="block px-1 text-[10px] text-muted-foreground">
+                        {groupShort(groupField(s, subject as StreamId))}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="px-1 py-0.5">
                     <CellInput
@@ -619,149 +647,3 @@ function StudentReports({
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-card px-3 py-2 shadow-[var(--shadow-card)]">
-      <p className="text-[11px] text-muted-foreground">{label}</p>
-      <p className="font-medium tabular-nums">{value}</p>
-    </div>
-  );
-}
-
-function MaxInput({
-  id,
-  max,
-  col,
-  label,
-}: {
-  id: string;
-  max: number;
-  col: number;
-  label: string;
-}) {
-  const setPaperMax = useAppStore((s) => s.setPaperMax);
-  const box = useRef<HTMLInputElement>(null);
-  const display = String(max);
-
-  useEffect(() => {
-    if (document.activeElement === box.current) return;
-    if (box.current && box.current.value !== display) box.current.value = display;
-  }, [display, id]);
-
-  function commit(raw: string) {
-    const n = Number(raw.trim());
-    if (Number.isFinite(n) && n > 0) {
-      if (n !== max) setPaperMax(id, n);
-      return;
-    }
-    if (box.current) box.current.value = display;
-  }
-
-  function onKey(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" || e.key === "ArrowDown") {
-      e.preventDefault();
-      commit(e.currentTarget.value);
-      focusCell(0, col);
-      return;
-    }
-    if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      commit(e.currentTarget.value);
-      const prev = document.querySelector<HTMLInputElement>(
-        `input[data-r="-1"][data-c="${col - 1}"], input[data-r="-1"][data-c="${col - 2}"]`,
-      );
-      if (prev) {
-        prev.focus();
-        prev.select();
-      }
-      return;
-    }
-    if (e.key === "ArrowRight") {
-      e.preventDefault();
-      commit(e.currentTarget.value);
-      const next = document.querySelector<HTMLInputElement>(
-        `input[data-r="-1"][data-c="${col + 1}"], input[data-r="-1"][data-c="${col + 2}"]`,
-      );
-      if (next) {
-        next.focus();
-        next.select();
-      }
-    }
-  }
-
-  return (
-    <input
-      ref={box}
-      data-r={-1}
-      data-c={col}
-      className="sheet-input sheet-input-max"
-      inputMode="numeric"
-      defaultValue={display}
-      onBlur={(e) => commit(e.target.value)}
-      onKeyDown={onKey}
-      onFocus={(e) => e.currentTarget.select()}
-      aria-label={`${label} 滿分`}
-    />
-  );
-}
-
-function ScorePair({
-  student,
-  paper,
-  max,
-  pass,
-  taMode,
-  row,
-  rawCol,
-  retakeCol,
-  onPasteGrid,
-  onChange,
-}: {
-  student: Student;
-  paper: AssessmentDef;
-  max: number;
-  pass: number;
-  taMode: boolean;
-  row: number;
-  rawCol: number;
-  retakeCol: number;
-  onPasteGrid: (grid: string[][], startRow: number, startCol: number) => void;
-  onChange: (patch: { raw?: string; retake?: string }) => void;
-}) {
-  const entry = student.scores[paper.id] ?? { raw: "", retake: "" };
-  const r = quizResult(student, paper, max, pass);
-  const formal = paper.group === "formal";
-  const bg =
-    r.pct == null
-      ? formal
-        ? "bg-gold/10"
-        : ""
-      : r.passed
-        ? "bg-pass/70 text-pass-fg"
-        : "bg-fail/80 text-fail-fg";
-  return (
-    <td className={cn("px-0.5 py-0.5 text-center", bg)}>
-      <CellInput
-        inputMode="decimal"
-        value={entry.raw}
-        row={row}
-        col={rawCol}
-        onChange={(v) => onChange({ raw: v })}
-        onPasteGrid={onPasteGrid}
-        aria-label={`${student.chname || "學生"} ${paperLabel(paper)} 分數`}
-      />
-      {!taMode && !formal && (
-        <CellInput
-          className="opacity-80"
-          inputMode="decimal"
-          value={entry.retake}
-          row={row}
-          col={retakeCol}
-          onChange={(v) => onChange({ retake: v })}
-          onPasteGrid={onPasteGrid}
-          aria-label={`${student.chname || "學生"} ${paperLabel(paper)} 重測`}
-        />
-      )}
-    </td>
-  );
-}

@@ -4,6 +4,7 @@ import {
   BookOpen,
   Calculator,
   CalendarDays,
+  Layers,
   LayoutGrid,
   Menu,
   Settings2,
@@ -13,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { S1_CLASSES, S2_CLASSES } from "@/lib/classes";
+import { S1_CLASSES, S2_CLASSES, ALL_CLASSES } from "@/lib/classes";
 import { SCHOOL_NAME, SCHOOL_YEAR } from "@/lib/calendar";
 import { useAppStore } from "@/lib/store";
 import { PwaProvider } from "@/lib/pwa";
@@ -22,6 +23,7 @@ import { InstallHeaderButton, InstallPrompt, InstallSpacer } from "@/components/
 
 const NAV = [
   { to: "/", label: "總覽", icon: LayoutGrid },
+  { to: "/groups", label: "語文分組", icon: Layers },
   { to: "/all", label: "全校總表", icon: Users },
   { to: "/awards", label: "進步頒獎", icon: Award },
   { to: "/subjects", label: "各科進程", icon: Table2 },
@@ -82,7 +84,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="flex flex-col gap-1">
               {NAV.map((item) => {
                 const active =
-                  item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+                  item.to === "/"
+                    ? pathname === "/"
+                    : item.to === "/groups"
+                      ? pathname.startsWith("/groups") || pathname.startsWith("/group/")
+                      : pathname.startsWith(item.to);
                 return (
                   <Link
                     key={item.to}
@@ -143,16 +149,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
+function fillIfEmpty() {
+  const roster = useAppStore.getState().roster;
+  const named = ALL_CLASSES.some((c) => (roster[c] ?? []).some((s) => s.chname.trim()));
+  if (!named) useAppStore.getState().loadOfficialRoster();
+}
+
 function ClientGate({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   useEffect(() => {
     const unsub = useAppStore.persist.onFinishHydration(() => {
       useAppStore.setState({ hydrated: true });
+      fillIfEmpty();
       setReady(true);
     });
     useAppStore.persist.rehydrate();
     if (useAppStore.persist.hasHydrated()) {
       useAppStore.setState({ hydrated: true });
+      fillIfEmpty();
       setReady(true);
     }
     const t = window.setTimeout(() => {

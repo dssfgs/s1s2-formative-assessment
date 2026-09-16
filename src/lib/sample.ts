@@ -1,6 +1,7 @@
 import { ALL_CLASSES, ROWS_PER_CLASS, type ClassCode } from "./classes";
 import { allAssessments } from "./calendar";
 import { emptyStudent, type Student } from "./progress";
+import { OFFICIAL_ROSTER } from "./roster-2627";
 
 const NAMES_1: [string, string][] = [
   ["陳嘉樂", "Chan Ka Lok"],
@@ -62,6 +63,52 @@ export function makeEmptyRoster(): Record<ClassCode, Student[]> {
     );
   }
   return out;
+}
+
+function padNo(v: string) {
+  const t = v.replace(/\s/g, "");
+  if (!t) return t;
+  return /^\d+$/.test(t) ? t.padStart(2, "0") : t;
+}
+
+/** 2026-2027 分組上課名單。prev 有同名學生時保留分數與學號。 */
+export function makeOfficialRoster(
+  prev?: Record<ClassCode, Student[]>,
+): Record<ClassCode, Student[]> {
+  const next = makeEmptyRoster();
+  const prevAll = prev
+    ? ALL_CLASSES.flatMap((c) =>
+        (prev[c] ?? []).map((s) => ({ ...s, scores: { ...s.scores } })),
+      )
+    : [];
+  for (const row of OFFICIAL_ROSTER) {
+    const idx = Number(row.classno) - 1;
+    if (!Number.isFinite(idx) || idx < 0) continue;
+    const list = next[row.classcode];
+    while (list.length <= idx) list.push(emptyStudent(row.classcode, list.length));
+    const matched = prevAll.find(
+      (s) =>
+        s.classcode === row.classcode &&
+        (s.chname === row.chname ||
+          (!!s.enname &&
+            s.enname.replace(/\s+/g, "").toUpperCase() ===
+              row.enname.replace(/\s+/g, "").toUpperCase())),
+    );
+    const cur = emptyStudent(row.classcode, idx);
+    cur.classno = padNo(row.classno);
+    cur.chname = row.chname;
+    cur.enname = row.enname;
+    cur.sex = row.sex;
+    cur.chiGroup = row.chiGroup;
+    cur.engGroup = row.engGroup;
+    cur.mathGroup = row.mathGroup;
+    if (matched) {
+      cur.scores = matched.scores;
+      if (matched.regno) cur.regno = matched.regno;
+    }
+    list[idx] = cur;
+  }
+  return next;
 }
 
 /** 示範班：1A、2A 填入姓名與兩階段分數，方便試進步指數與頒獎。 */

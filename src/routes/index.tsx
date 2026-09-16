@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Award, CalendarDays, Sparkles, Upload } from "lucide-react";
+import { Award, CalendarDays, Layers, Sparkles, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,8 @@ import {
 import { fmtPct, isoToShort, signed } from "@/lib/format";
 import { awardsLanguage, classStats, computeClass, isActive } from "@/lib/progress";
 import { subjectShort } from "@/lib/subjects";
+import { STREAM_GROUPS, groupShort, officialCount, type StreamId } from "@/lib/groups";
+import { OFFICIAL_COUNT } from "@/lib/roster-2627";
 import { useAppStore, useAssessments, useMaxOf } from "@/lib/store";
 
 export const Route = createFileRoute("/")({ component: Home });
@@ -21,6 +23,7 @@ export const Route = createFileRoute("/")({ component: Home });
 export function Home() {
   const roster = useAppStore((s) => s.roster);
   const loadDemo = useAppStore((s) => s.loadDemo);
+  const loadOfficialRoster = useAppStore((s) => s.loadOfficialRoster);
   const settings = useAppStore((s) => s.settings);
   const all = useAssessments();
   const maxOf = useMaxOf();
@@ -45,8 +48,8 @@ export function Home() {
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+      <header className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+        <div className="min-w-0">
           <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
             {SCHOOL_NAME}
           </p>
@@ -54,13 +57,16 @@ export function Home() {
             {SCHOOL_YEAR} 課後進展性評估
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            對齊學與教事務委員會指引：中文、英文分開輸入與分析；非核心科目另計測驗／考試相對階段進步；每班頒進步指數首三名。
+            對齊學與教事務委員會指引：中文、英文按上課分組分開輸入與分析；非核心科目按班別輸入測驗／考試相對階段進步。
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={loadDemo} variant="gold">
+          <Button onClick={() => loadOfficialRoster()} variant="gold" className="max-sm:w-full">
             <Sparkles className="size-4" />
-            載入 1A／2A 示範數據
+            載入分組名單
+          </Button>
+          <Button onClick={loadDemo} variant="outline">
+            示範數據
           </Button>
           <Button asChild variant="outline">
             <Link to="/import">
@@ -78,7 +84,7 @@ export function Home() {
       </header>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="已建檔學生" value={String(filled)} hint="八班名冊，資料只存在這部瀏覽器" />
+        <Stat label="已建檔學生" value={String(filled)} hint={`本學年分組名單 ${OFFICIAL_COUNT} 人，資料只存在這部瀏覽器`} />
         <Stat
           label="中一達標率"
           value={stats1.passRate == null ? "—" : fmtPct(stats1.passRate * 100)}
@@ -150,7 +156,55 @@ export function Home() {
       </section>
 
       <section>
-        <h2 className="mb-3 font-display text-lg">按班輸入</h2>
+        <div className="mb-3 flex items-end justify-between gap-2">
+          <h2 className="font-display text-lg">按上課分組輸入語文</h2>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/groups">
+              <Layers className="size-4" />
+              全部分組
+            </Link>
+          </Button>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-2">
+          {(["chi", "eng"] as StreamId[]).map((subject) => (
+            <Card key={subject}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">{subjectShort(subject)}</CardTitle>
+                <CardDescription>
+                  {subject === "chi" ? "中文抽離組 ABCD／CD" : "英文抽離組 ABCD／BCD"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                {([1, 2] as const).map((form) => (
+                  <div key={form}>
+                    <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">
+                      {form === 1 ? "中一" : "中二"}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {STREAM_GROUPS[subject][form].map((id) => (
+                        <Link
+                          key={id}
+                          to="/group/$subject/$code"
+                          params={{ subject, code: id }}
+                          className="rounded-md bg-muted px-2.5 py-1.5 text-xs hover:bg-secondary"
+                        >
+                          {groupShort(id)}
+                          <span className="ml-1 tabular-nums text-muted-foreground">
+                            {officialCount(subject, id)}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-3 font-display text-lg">按班輸入非核心／查看原班</h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {ALL_CLASSES.map((c) => {
             const n = (roster[c] ?? []).filter(isActive).length;

@@ -18,6 +18,8 @@ import { ImportPage } from "@/routes/import";
 import { RulesPage } from "@/routes/rules";
 import { SettingsPage } from "@/routes/settings";
 import { ClassPage } from "@/routes/class.$code";
+import { GroupsPage } from "@/routes/groups";
+import { GroupPage } from "@/routes/group.$subject.$code";
 import "./styles.css";
 
 const rootRoute = createRootRoute({
@@ -37,6 +39,8 @@ const routeTree = rootRoute.addChildren([
   createRoute({ getParentRoute: () => rootRoute, path: "/import", component: ImportPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/rules", component: RulesPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/settings", component: SettingsPage }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/groups", component: GroupsPage }),
+  createRoute({ getParentRoute: () => rootRoute, path: "/group/$subject/$code", component: GroupPage }),
   createRoute({ getParentRoute: () => rootRoute, path: "/class/$code", component: ClassPage }),
 ]);
 
