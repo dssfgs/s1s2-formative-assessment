@@ -101,34 +101,33 @@ export function AppShell({ children }: { children: ReactNode }) {
                 />
               ))}
             </div>
-            <div>
-              <p className="mb-2 px-3 text-[11px] font-medium tracking-wider text-muted-foreground">
-                輸入非核心 · 中一
-              </p>
-              <div className="grid grid-cols-4 gap-1">
-                {S1_CLASSES.map((c) => (
-                  <ClassChip
-                    key={c}
-                    code={c}
-                    active={pathname === `/class/${c}`}
-                    onClick={() => setOpen(false)}
-                  />
-                ))}
+            <div className="flex flex-col gap-3">
+              <p className="px-3 text-[11px] font-medium text-muted-foreground">輸入非核心科目</p>
+              <div>
+                <p className="mb-2 px-3 text-[11px] text-muted-foreground">中一</p>
+                <div className="grid grid-cols-4 gap-1">
+                  {S1_CLASSES.map((c) => (
+                    <ClassChip
+                      key={c}
+                      code={c}
+                      active={pathname === `/class/${c}`}
+                      onClick={() => setOpen(false)}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-            <div>
-              <p className="mb-2 px-3 text-[11px] font-medium tracking-wider text-muted-foreground">
-                輸入非核心 · 中二
-              </p>
-              <div className="grid grid-cols-4 gap-1">
-                {S2_CLASSES.map((c) => (
-                  <ClassChip
-                    key={c}
-                    code={c}
-                    active={pathname === `/class/${c}`}
-                    onClick={() => setOpen(false)}
-                  />
-                ))}
+              <div>
+                <p className="mb-2 px-3 text-[11px] text-muted-foreground">中二</p>
+                <div className="grid grid-cols-4 gap-1">
+                  {S2_CLASSES.map((c) => (
+                    <ClassChip
+                      key={c}
+                      code={c}
+                      active={pathname === `/class/${c}`}
+                      onClick={() => setOpen(false)}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
             <div className="flex flex-col gap-1">

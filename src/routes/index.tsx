@@ -204,7 +204,7 @@ export function Home() {
       </section>
 
       <section>
-        <h2 className="mb-3 font-display text-lg">輸入非核心（按班）</h2>
+        <h2 className="mb-3 font-display text-lg">輸入非核心科目（按班）</h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {ALL_CLASSES.map((c) => {
             const n = (roster[c] ?? []).filter(isActive).length;
