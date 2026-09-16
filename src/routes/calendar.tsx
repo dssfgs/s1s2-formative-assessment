@@ -3,33 +3,31 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   FORMALS,
-  NONCORE_DATES,
   STAGES,
   languageAssessments,
+  noncoreSlots,
   weekdayLabel,
   type StageId,
 } from "@/lib/calendar";
+import { S1_CLASSES, S2_CLASSES, type FormLevel } from "@/lib/classes";
 import { isoToShort, todayIso } from "@/lib/format";
 import { subjectShort } from "@/lib/subjects";
-import { useAssessments } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/calendar")({ component: CalendarPage });
 
 export function CalendarPage() {
-  const all = useAssessments();
   const today = todayIso();
 
   return (
     <div className="flex flex-col gap-6">
       <header>
         <p className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-          指引 3.1–3.2
+          A.11／A.12 時間表
         </p>
         <h1 className="font-display text-2xl font-medium tracking-tight">2026-2027 評估日程</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          語文科逢星期一至三；非核心科目於測驗及考試前一至兩週，每階段每科一次。科任須於
-          15:45 前到達課室，達標學生 16:15 後離校。
+          中一中文逢星期一、英文逢星期三；中二相反。非核心同一日各班科目不同，按官方時間表入分。
         </p>
       </header>
 
@@ -58,37 +56,8 @@ export function CalendarPage() {
         <StageBlock key={st.id} stage={st.id} today={today} />
       ))}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>非核心科目日期（兩級共用）</CardTitle>
-          <CardDescription>
-            預設按地理 → 公經社 → 中史 → 歷史 → 佛化教育 → 科學。可在「設定」重排。
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {NONCORE_DATES.map((d) => {
-              const hit = all.find((a) => a.date === d.date && a.form === 1 && a.group === "noncore");
-              return (
-                <div
-                  key={d.date}
-                  className={cn(
-                    "rounded-md border border-border px-3 py-2 text-sm",
-                    d.date === today && "border-primary bg-secondary",
-                  )}
-                >
-                  <div className="font-medium tabular-nums">
-                    {isoToShort(d.date)} · {weekdayLabel(d.weekday)}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {STAGES[d.stage - 1]?.name} · {hit ? subjectShort(hit.subject) : "—"}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      <NoncoreTable form={1} today={today} />
+      <NoncoreTable form={2} today={today} />
     </div>
   );
 }
@@ -117,7 +86,7 @@ function StageBlock({ stage, today }: { stage: StageId; today: string }) {
       <CardContent className="grid gap-4 md:grid-cols-2">
         {groups.map((g) => (
           <div key={g.title}>
-            <p className="mb-2 text-xs font-medium text-muted-foreground">{g.title}</p>
+            <p className="mb-2 text-sm text-muted-foreground">{g.title}</p>
             <div className="flex flex-wrap gap-1.5">
               {g.items.map((a) => (
                 <Badge
@@ -130,6 +99,60 @@ function StageBlock({ stage, today }: { stage: StageId; today: string }) {
             </div>
           </div>
         ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function NoncoreTable({ form, today }: { form: FormLevel; today: string }) {
+  const slots = noncoreSlots(form);
+  const classes = form === 1 ? S1_CLASSES : S2_CLASSES;
+  const title = form === 1 ? "中一非核心（A.11）" : "中二非核心（A.12）";
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>同一日各班科目不同。成績表只顯示該班當日科目。</CardDescription>
+      </CardHeader>
+      <CardContent className="overflow-x-auto">
+        <table className="w-full min-w-[32rem] text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-muted-foreground">
+              <th className="py-2 pr-3 font-medium">日期</th>
+              <th className="py-2 pr-3 font-medium">階段</th>
+              {classes.map((c) => (
+                <th key={c} className="py-2 pr-3 font-medium">
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {slots.map((slot) => (
+              <tr
+                key={slot.date}
+                className={cn(
+                  "border-b border-border/70",
+                  slot.date === today && "bg-secondary",
+                )}
+              >
+                <td className="py-2 pr-3 tabular-nums whitespace-nowrap">
+                  {isoToShort(slot.date)}
+                  <span className="ml-1 text-muted-foreground">{weekdayLabel(slot.weekday)}</span>
+                </td>
+                <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">
+                  {STAGES[slot.stage - 1]?.name.replace("階段", "")}
+                </td>
+                {slot.subjects.map((sub, i) => (
+                  <td key={classes[i]} className="py-2 pr-3 whitespace-nowrap">
+                    {subjectShort(sub)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </CardContent>
     </Card>
   );

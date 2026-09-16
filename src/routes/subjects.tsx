@@ -130,7 +130,7 @@ export function SubjectsPage() {
         code,
         computeClass(
           roster[code] ?? [],
-          all.filter((a) => a.form === form),
+          all.filter((a) => a.form === form && (!a.classes || a.classes.includes(code))),
           maxOf,
           pass,
           settings.progressMethod,

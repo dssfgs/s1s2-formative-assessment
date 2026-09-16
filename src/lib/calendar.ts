@@ -1,4 +1,4 @@
-import type { FormLevel } from "./classes";
+import { S1_CLASSES, S2_CLASSES, formOf, type ClassCode, type FormLevel } from "./classes";
 import type { SubjectId } from "./subjects";
 import { isoToShort, todayIso } from "./format";
 
@@ -51,6 +51,8 @@ export type AssessmentDef = {
   weekday: string;
   group: AssessmentGroup;
   formalKind?: FormalKind;
+  /** 非核心：該日期只這幾班考此科。語文／測考不設（全級）。 */
+  classes?: ClassCode[];
 };
 
 type DateSpec = { date: string; weekday: string; stage: StageId };
@@ -71,7 +73,7 @@ function langDates(
   }));
 }
 
-/** 2026-2027 語文科評估日期（指引 3.1） */
+/** 2026-2027 語文科評估日期（A.11 中一／A.12 中二時間表） */
 const S1_CHI: DateSpec[] = [
   { date: "2026-09-14", weekday: "一", stage: 1 },
   { date: "2026-09-21", weekday: "一", stage: 1 },
@@ -135,6 +137,7 @@ const S2_ENG: DateSpec[] = [
   { date: "2026-11-16", weekday: "一", stage: 2 },
   { date: "2026-11-23", weekday: "一", stage: 2 },
   { date: "2026-12-07", weekday: "一", stage: 2 },
+  { date: "2026-12-14", weekday: "一", stage: 2 },
   { date: "2027-02-01", weekday: "一", stage: 3 },
   { date: "2027-02-22", weekday: "一", stage: 3 },
   { date: "2027-03-01", weekday: "一", stage: 3 },
@@ -145,33 +148,74 @@ const S2_ENG: DateSpec[] = [
   { date: "2027-05-17", weekday: "一", stage: 4 },
 ];
 
-/** 非核心科目評估日期（每階段每科一次，指引 3.2） */
-export const NONCORE_DATES: { date: string; weekday: string; stage: StageId }[] = [
-  { date: "2026-10-12", weekday: "一", stage: 1 },
-  { date: "2026-10-14", weekday: "三", stage: 1 },
-  { date: "2026-10-21", weekday: "三", stage: 1 },
-  { date: "2026-10-22", weekday: "四", stage: 1 },
-  { date: "2026-10-23", weekday: "五", stage: 1 },
-  { date: "2026-10-26", weekday: "一", stage: 1 },
-  { date: "2026-12-16", weekday: "三", stage: 2 },
-  { date: "2027-01-04", weekday: "一", stage: 2 },
-  { date: "2027-01-05", weekday: "二", stage: 2 },
-  { date: "2027-01-07", weekday: "四", stage: 2 },
-  { date: "2027-01-08", weekday: "五", stage: 2 },
-  { date: "2027-01-11", weekday: "一", stage: 2 },
-  { date: "2027-03-10", weekday: "三", stage: 3 },
-  { date: "2027-03-12", weekday: "五", stage: 3 },
-  { date: "2027-03-15", weekday: "一", stage: 3 },
-  { date: "2027-03-16", weekday: "二", stage: 3 },
-  { date: "2027-03-17", weekday: "三", stage: 3 },
-  { date: "2027-03-18", weekday: "四", stage: 3 },
-  { date: "2027-05-24", weekday: "一", stage: 4 },
-  { date: "2027-05-26", weekday: "三", stage: 4 },
-  { date: "2027-05-31", weekday: "一", stage: 4 },
-  { date: "2027-06-01", weekday: "二", stage: 4 },
-  { date: "2027-06-02", weekday: "三", stage: 4 },
-  { date: "2027-06-03", weekday: "四", stage: 4 },
+/** A／B／C／D 四班當日科目（A.11／A.12）。同一日各班科目可以不同。 */
+export type NoncoreSlot = {
+  date: string;
+  weekday: string;
+  stage: StageId;
+  subjects: [SubjectId, SubjectId, SubjectId, SubjectId];
+};
+
+/** 中一非核心（A.11） */
+export const S1_NONCORE: NoncoreSlot[] = [
+  { date: "2026-10-12", weekday: "一", stage: 1, subjects: ["budd", "budd", "budd", "budd"] },
+  { date: "2026-10-14", weekday: "三", stage: 1, subjects: ["chist", "ces", "ces", "geo"] },
+  { date: "2026-10-21", weekday: "三", stage: 1, subjects: ["hist", "hist", "hist", "hist"] },
+  { date: "2026-10-22", weekday: "四", stage: 1, subjects: ["ces", "geo", "chist", "ces"] },
+  { date: "2026-10-23", weekday: "五", stage: 1, subjects: ["sci", "sci", "sci", "chist"] },
+  { date: "2026-10-26", weekday: "一", stage: 1, subjects: ["geo", "chist", "geo", "sci"] },
+  { date: "2026-12-16", weekday: "三", stage: 2, subjects: ["sci", "ces", "sci", "sci"] },
+  { date: "2027-01-04", weekday: "一", stage: 2, subjects: ["budd", "budd", "budd", "budd"] },
+  { date: "2027-01-05", weekday: "二", stage: 2, subjects: ["hist", "hist", "hist", "hist"] },
+  { date: "2027-01-07", weekday: "四", stage: 2, subjects: ["ces", "geo", "chist", "ces"] },
+  { date: "2027-01-08", weekday: "五", stage: 2, subjects: ["geo", "chist", "ces", "chist"] },
+  { date: "2027-01-11", weekday: "一", stage: 2, subjects: ["chist", "sci", "geo", "geo"] },
+  { date: "2027-03-10", weekday: "三", stage: 3, subjects: ["sci", "ces", "sci", "sci"] },
+  { date: "2027-03-12", weekday: "五", stage: 3, subjects: ["geo", "sci", "geo", "chist"] },
+  { date: "2027-03-15", weekday: "一", stage: 3, subjects: ["budd", "budd", "budd", "budd"] },
+  { date: "2027-03-16", weekday: "二", stage: 3, subjects: ["hist", "hist", "hist", "hist"] },
+  { date: "2027-03-17", weekday: "三", stage: 3, subjects: ["chist", "chist", "ces", "geo"] },
+  { date: "2027-03-18", weekday: "四", stage: 3, subjects: ["ces", "geo", "chist", "ces"] },
+  { date: "2027-05-24", weekday: "一", stage: 4, subjects: ["geo", "sci", "geo", "sci"] },
+  { date: "2027-05-26", weekday: "三", stage: 4, subjects: ["hist", "hist", "hist", "hist"] },
+  { date: "2027-05-31", weekday: "一", stage: 4, subjects: ["budd", "budd", "budd", "budd"] },
+  { date: "2027-06-01", weekday: "二", stage: 4, subjects: ["sci", "ces", "sci", "chist"] },
+  { date: "2027-06-02", weekday: "三", stage: 4, subjects: ["chist", "chist", "ces", "geo"] },
+  { date: "2027-06-03", weekday: "四", stage: 4, subjects: ["ces", "geo", "chist", "ces"] },
 ];
+
+/** 中二非核心（A.12） */
+export const S2_NONCORE: NoncoreSlot[] = [
+  { date: "2026-10-12", weekday: "一", stage: 1, subjects: ["sci", "chist", "geo", "chist"] },
+  { date: "2026-10-14", weekday: "三", stage: 1, subjects: ["chist", "sci", "sci", "geo"] },
+  { date: "2026-10-21", weekday: "三", stage: 1, subjects: ["geo", "ces", "chist", "ces"] },
+  { date: "2026-10-22", weekday: "四", stage: 1, subjects: ["budd", "budd", "ces", "budd"] },
+  { date: "2026-10-23", weekday: "五", stage: 1, subjects: ["hist", "hist", "hist", "hist"] },
+  { date: "2026-10-26", weekday: "一", stage: 1, subjects: ["ces", "geo", "budd", "sci"] },
+  { date: "2026-12-16", weekday: "三", stage: 2, subjects: ["hist", "hist", "hist", "hist"] },
+  { date: "2027-01-04", weekday: "一", stage: 2, subjects: ["sci", "chist", "geo", "chist"] },
+  { date: "2027-01-05", weekday: "二", stage: 2, subjects: ["geo", "ces", "chist", "ces"] },
+  { date: "2027-01-07", weekday: "四", stage: 2, subjects: ["budd", "budd", "ces", "budd"] },
+  { date: "2027-01-08", weekday: "五", stage: 2, subjects: ["ces", "sci", "sci", "geo"] },
+  { date: "2027-01-11", weekday: "一", stage: 2, subjects: ["chist", "geo", "budd", "sci"] },
+  { date: "2027-03-10", weekday: "三", stage: 3, subjects: ["hist", "hist", "hist", "hist"] },
+  { date: "2027-03-12", weekday: "五", stage: 3, subjects: ["chist", "budd", "budd", "budd"] },
+  { date: "2027-03-15", weekday: "一", stage: 3, subjects: ["geo", "chist", "geo", "chist"] },
+  { date: "2027-03-16", weekday: "二", stage: 3, subjects: ["sci", "geo", "chist", "ces"] },
+  { date: "2027-03-17", weekday: "三", stage: 3, subjects: ["ces", "ces", "sci", "geo"] },
+  { date: "2027-03-18", weekday: "四", stage: 3, subjects: ["budd", "sci", "ces", "sci"] },
+  { date: "2027-05-24", weekday: "一", stage: 4, subjects: ["budd", "chist", "budd", "sci"] },
+  { date: "2027-05-26", weekday: "三", stage: 4, subjects: ["geo", "sci", "chist", "ces"] },
+  { date: "2027-05-31", weekday: "一", stage: 4, subjects: ["sci", "ces", "geo", "chist"] },
+  { date: "2027-06-01", weekday: "二", stage: 4, subjects: ["hist", "hist", "hist", "hist"] },
+  { date: "2027-06-02", weekday: "三", stage: 4, subjects: ["ces", "budd", "sci", "geo"] },
+  { date: "2027-06-03", weekday: "四", stage: 4, subjects: ["chist", "geo", "ces", "budd"] },
+];
+
+/** 非核心日期（兩級同日；科目按班，見 S1_NONCORE／S2_NONCORE） */
+export const NONCORE_DATES: { date: string; weekday: string; stage: StageId }[] = S1_NONCORE.map(
+  ({ date, weekday, stage }) => ({ date, weekday, stage }),
+);
 
 export const DEFAULT_NONCORE_ORDER: SubjectId[] = [
   "geo",
@@ -194,34 +238,43 @@ export function languageAssessments(): AssessmentDef[] {
   ];
 }
 
-export function noncoreAssessments(
-  orderByStage: Record<StageId, SubjectId[]> = {
-    1: DEFAULT_NONCORE_ORDER,
-    2: DEFAULT_NONCORE_ORDER,
-    3: DEFAULT_NONCORE_ORDER,
-    4: DEFAULT_NONCORE_ORDER,
-  },
-): AssessmentDef[] {
-  const out: AssessmentDef[] = [];
-  const byStage: Record<StageId, typeof NONCORE_DATES> = { 1: [], 2: [], 3: [], 4: [] };
-  for (const d of NONCORE_DATES) byStage[d.stage].push(d);
+export function noncoreSlots(form: FormLevel): NoncoreSlot[] {
+  return form === 1 ? S1_NONCORE : S2_NONCORE;
+}
 
+function classesOfForm(form: FormLevel): readonly ClassCode[] {
+  return form === 1 ? S1_CLASSES : S2_CLASSES;
+}
+
+export function noncoreAssessments(): AssessmentDef[] {
+  const out: AssessmentDef[] = [];
+  const seen = new Map<string, AssessmentDef>();
   for (const form of [1, 2] as FormLevel[]) {
-    for (const stage of [1, 2, 3, 4] as StageId[]) {
-      const dates = byStage[stage];
-      const order = orderByStage[stage] ?? DEFAULT_NONCORE_ORDER;
-      dates.forEach((d, i) => {
-        const subject = order[i] ?? DEFAULT_NONCORE_ORDER[i]!;
-        out.push({
-          id: `f${form}-${subject}-${d.date}`,
+    const slots = noncoreSlots(form);
+    const classList = classesOfForm(form);
+    for (const slot of slots) {
+      for (let i = 0; i < 4; i++) {
+        const subject = slot.subjects[i]!;
+        const code = classList[i]!;
+        const id = `f${form}-${subject}-${slot.date}`;
+        const existing = seen.get(id);
+        if (existing) {
+          existing.classes!.push(code);
+          continue;
+        }
+        const a: AssessmentDef = {
+          id,
           form,
           subject,
-          stage,
-          date: d.date,
-          weekday: d.weekday,
+          stage: slot.stage,
+          date: slot.date,
+          weekday: slot.weekday,
           group: "noncore",
-        });
-      });
+          classes: [code],
+        };
+        seen.set(id, a);
+        out.push(a);
+      }
     }
   }
   return out;
@@ -253,10 +306,14 @@ export function formalAssessments(): AssessmentDef[] {
   return out;
 }
 
-export function allAssessments(
-  orderByStage?: Record<StageId, SubjectId[]>,
-): AssessmentDef[] {
-  return [...languageAssessments(), ...noncoreAssessments(orderByStage), ...formalAssessments()];
+export function allAssessments(): AssessmentDef[] {
+  return [...languageAssessments(), ...noncoreAssessments(), ...formalAssessments()];
+}
+
+export function paperAppliesTo(a: AssessmentDef, code: ClassCode) {
+  if (formOf(code) !== a.form) return false;
+  if (!a.classes || a.classes.length === 0) return true;
+  return a.classes.includes(code);
 }
 
 export function assessmentsFor(
@@ -266,6 +323,7 @@ export function assessmentsFor(
     subject?: SubjectId;
     stage?: StageId;
     group?: AssessmentGroup;
+    classCode?: ClassCode;
   },
 ) {
   return list.filter((a) => {
@@ -273,6 +331,7 @@ export function assessmentsFor(
     if (opts.subject && a.subject !== opts.subject) return false;
     if (opts.stage && a.stage !== opts.stage) return false;
     if (opts.group && a.group !== opts.group) return false;
+    if (opts.classCode && !paperAppliesTo(a, opts.classCode)) return false;
     return true;
   });
 }
@@ -289,7 +348,7 @@ export function sortPapers(list: AssessmentDef[]) {
 export function upcomingAssessments(list: AssessmentDef[], from = todayIso(), n = 6) {
   return list
     .filter((a) => a.group !== "formal" && a.date >= from)
-    .sort((a, b) => a.date.localeCompare(b.date) || a.form - b.form)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.form - b.form || a.subject.localeCompare(b.subject))
     .slice(0, n);
 }
 
@@ -328,4 +387,12 @@ export function paperSubheading(a: AssessmentDef) {
     return f?.name ?? "";
   }
   return a.weekday ? weekdayLabel(a.weekday) : "";
+}
+
+/** 即將舉行／日程：全級考則不列班；分班考則列出班別。 */
+export function paperClassHint(a: AssessmentDef) {
+  if (!a.classes || a.classes.length === 0) return "";
+  const all = classesOfForm(a.form);
+  if (a.classes.length === all.length) return "";
+  return a.classes.join(" ");
 }

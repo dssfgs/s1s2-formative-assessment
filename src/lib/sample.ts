@@ -1,5 +1,5 @@
 import { ALL_CLASSES, ROWS_PER_CLASS, type ClassCode } from "./classes";
-import { allAssessments } from "./calendar";
+import { allAssessments, paperAppliesTo } from "./calendar";
 import { emptyStudent, type Student } from "./progress";
 import { OFFICIAL_ROSTER } from "./roster-2627";
 
@@ -125,7 +125,7 @@ function fillClass(
   names: [string, string][],
 ) {
   const form = code.startsWith("2") ? 2 : 1;
-  const assessments = allAssessments().filter((a) => a.form === form);
+  const assessments = allAssessments().filter((a) => a.form === form && paperAppliesTo(a, code));
 
   names.forEach(([ch, en], i) => {
     const s = emptyStudent(code, i);

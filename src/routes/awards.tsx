@@ -10,6 +10,7 @@ import {
   SCHOOL_NAME,
   SCHOOL_YEAR,
   STAGES,
+  assessmentsFor,
   type FormalKind,
   type StageId,
 } from "@/lib/calendar";
@@ -47,7 +48,7 @@ export function AwardsPage() {
 
   const boards = useMemo(() => {
     return classes.map((code) => {
-      const papers = all.filter((a) => a.form === formOf(code));
+      const papers = assessmentsFor(all, { form: formOf(code), classCode: code });
       const computed = computeClass(
         roster[code] ?? [],
         papers,

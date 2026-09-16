@@ -4,6 +4,7 @@ import {
   BookOpen,
   Calculator,
   CalendarDays,
+  ClipboardPen,
   Layers,
   LayoutGrid,
   Menu,
@@ -102,9 +103,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               ))}
             </div>
             <div className="flex flex-col gap-3">
-              <p className="px-3 text-[11px] font-medium text-muted-foreground">輸入非核心科目</p>
+              <p className="flex h-10 items-center gap-2 px-3 text-sm text-muted-foreground">
+                <ClipboardPen className="size-4 shrink-0" />
+                輸入非核心科目
+              </p>
               <div>
-                <p className="mb-2 px-3 text-[11px] text-muted-foreground">中一</p>
+                <p className="mb-2 px-3 text-sm text-muted-foreground">中一</p>
                 <div className="grid grid-cols-4 gap-1">
                   {S1_CLASSES.map((c) => (
                     <ClassChip
@@ -117,7 +121,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </div>
               </div>
               <div>
-                <p className="mb-2 px-3 text-[11px] text-muted-foreground">中二</p>
+                <p className="mb-2 px-3 text-sm text-muted-foreground">中二</p>
                 <div className="grid grid-cols-4 gap-1">
                   {S2_CLASSES.map((c) => (
                     <ClassChip
@@ -238,7 +242,7 @@ function ClassChip({
       title="輸入地理、公經社、中史、歷史、佛化教育、科學"
       onClick={onClick}
       className={cn(
-        "grid h-9 place-items-center rounded-md text-xs font-medium transition-colors",
+        "grid h-10 place-items-center rounded-md text-sm font-medium transition-colors",
         active
           ? "bg-primary text-primary-foreground"
           : "text-muted-foreground hover:bg-muted hover:text-foreground",

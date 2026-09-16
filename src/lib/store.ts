@@ -264,8 +264,7 @@ export const useAppStore = create<State>()(
 );
 
 export function useAssessments() {
-  const order = useAppStore((s) => s.settings.noncoreOrder);
-  return allAssessments(order);
+  return allAssessments();
 }
 
 export function useMaxOf() {

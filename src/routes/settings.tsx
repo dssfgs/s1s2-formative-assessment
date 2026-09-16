@@ -1,11 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InstallCard } from "@/components/install-prompt";
-import { STAGES, type StageId } from "@/lib/calendar";
-import { NONCORE_SUBJECTS, subjectShort, type SubjectId } from "@/lib/subjects";
 import { useAppStore } from "@/lib/store";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
@@ -13,7 +11,6 @@ export const Route = createFileRoute("/settings")({ component: SettingsPage });
 export function SettingsPage() {
   const settings = useAppStore((s) => s.settings);
   const setSettings = useAppStore((s) => s.setSettings);
-  const setNoncoreOrder = useAppStore((s) => s.setNoncoreOrder);
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -87,60 +84,17 @@ export function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>非核心科目日期對應</CardTitle>
-          <CardDescription>每階段六個日期，對應六科。點選可輪換該格科目。</CardDescription>
+          <CardTitle>非核心科目日期</CardTitle>
+          <CardDescription>
+            按 A.11（中一）、A.12（中二）時間表，同一日各班科目不同，不可改。
+          </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {STAGES.map((st) => (
-            <StageOrder
-              key={st.id}
-              stage={st.id}
-              title={st.name}
-              order={settings.noncoreOrder[st.id]}
-              onChange={(order) => setNoncoreOrder(st.id, order)}
-            />
-          ))}
+        <CardContent>
+          <Button asChild variant="outline">
+            <Link to="/calendar">查看評估日程</Link>
+          </Button>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function StageOrder({
-  stage,
-  title,
-  order,
-  onChange,
-}: {
-  stage: StageId;
-  title: string;
-  order: SubjectId[];
-  onChange: (order: SubjectId[]) => void;
-}) {
-  const cycle = (i: number) => {
-    const ids = NONCORE_SUBJECTS.map((s) => s.id);
-    const next = order.slice();
-    const cur = next[i]!;
-    const idx = ids.indexOf(cur);
-    let cand = ids[(idx + 1) % ids.length]!;
-    const used = new Set(next.filter((_, j) => j !== i));
-    while (used.has(cand)) cand = ids[(ids.indexOf(cand) + 1) % ids.length]!;
-    next[i] = cand;
-    onChange(next);
-  };
-
-  return (
-    <div>
-      <p className="mb-2 text-xs font-medium text-muted-foreground">
-        {title}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {order.map((id, i) => (
-          <Button key={`${stage}-${i}`} size="sm" variant="outline" onClick={() => cycle(i)}>
-            {i + 1}. {subjectShort(id)}
-          </Button>
-        ))}
-      </div>
     </div>
   );
 }

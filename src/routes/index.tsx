@@ -8,6 +8,7 @@ import {
   SCHOOL_NAME,
   SCHOOL_YEAR,
   STAGES,
+  paperClassHint,
   upcomingAssessments,
   weekdayLabel,
 } from "@/lib/calendar";
@@ -109,7 +110,7 @@ export function Home() {
               <CalendarDays className="size-4" />
               即將舉行
             </CardTitle>
-            <CardDescription>語文科逢星期一至三；非核心科目測考前一至兩週。</CardDescription>
+            <CardDescription>按 A.11／A.12 時間表。語文全級；非核心按班。</CardDescription>
           </CardHeader>
           <CardContent>
             {upcoming.length === 0 ? (
@@ -126,6 +127,7 @@ export function Home() {
                     </span>
                     <span className="min-w-0 flex-1 truncate text-sm">
                       中{a.form === 1 ? "一" : "二"} · {subjectShort(a.subject)}
+                      {paperClassHint(a) ? ` · ${paperClassHint(a)}` : ""}
                     </span>
                     <Badge tone={a.group === "language" ? "primary" : "gold"}>
                       {a.group === "language" ? "語文" : "非核心"}

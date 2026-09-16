@@ -55,7 +55,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
   const all = useAssessments();
   const maxOf = useMaxOf();
 
-  const [subject, setSubject] = useState<SubjectId>(form === 1 ? "chi" : "eng");
+  const [subject, setSubject] = useState<SubjectId>("geo");
   const [stage, setStage] = useState<StageId | "all">(1);
   const [taMode, setTaMode] = useState(false);
   const [rosterText, setRosterText] = useState("");
@@ -70,13 +70,14 @@ export function ClassSheet({ code }: { code: ClassCode }) {
         form,
         subject,
         stage: stage === "all" ? undefined : stage,
+        classCode: code,
       }),
     );
-  }, [all, form, subject, stage]);
+  }, [all, form, subject, stage, code]);
 
   const classPapers = useMemo(
-    () => assessmentsFor(all, { form }),
-    [all, form],
+    () => assessmentsFor(all, { form, classCode: code }),
+    [all, form, code],
   );
 
   const computed = useMemo(

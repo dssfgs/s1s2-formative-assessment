@@ -43,7 +43,7 @@ export function AllPage() {
     const out: Row[] = [];
     for (const code of classes) {
       const formN = formOf(code);
-      const formPapers = all.filter((a) => a.form === formN);
+      const formPapers = assessmentsFor(all, { form: formN, classCode: code });
       const viewPapers = assessmentsFor(formPapers, {
         subject: subject === "all" ? undefined : subject,
         stage: stage === "all" ? undefined : stage,
