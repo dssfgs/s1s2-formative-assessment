@@ -62,7 +62,7 @@ export function CalendarPage() {
         <CardHeader>
           <CardTitle>非核心科目日期（兩級共用）</CardTitle>
           <CardDescription>
-            預設按地理 → 公民 → 中史 → 歷史 → 佛化 → 科學。可在「設定」重排。
+            預設按地理 → 公經社 → 中史 → 歷史 → 佛化教育 → 科學。可在「設定」重排。
           </CardDescription>
         </CardHeader>
         <CardContent>

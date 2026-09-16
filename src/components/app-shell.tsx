@@ -236,7 +236,7 @@ function ClassChip({
     <Link
       to="/class/$code"
       params={{ code }}
-      title="輸入地理、公民、中史、歷史、佛化、科學"
+      title="輸入地理、公經社、中史、歷史、佛化教育、科學"
       onClick={onClick}
       className={cn(
         "grid h-9 place-items-center rounded-md text-xs font-medium transition-colors",

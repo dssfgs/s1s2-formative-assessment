@@ -2,7 +2,7 @@ import type { AssessmentDef, FormalKind } from "./calendar";
 import { paperHeading } from "./calendar";
 import { ALL_CLASSES, isClassCode, type ClassCode } from "./classes";
 import type { Student } from "./progress";
-import { subjectShort } from "./subjects";
+import { subjectLabelMatch, subjectShort } from "./subjects";
 
 function splitLine(line: string) {
   if (line.includes("\t")) return line.split("\t").map((s) => s.trim());
@@ -77,7 +77,7 @@ export function parseScoreCsv(text: string, assessments: AssessmentDef[]): Impor
             a.formalKind === kind &&
             (!subject ||
               a.subject === subject ||
-              subject.includes(subjectShort(a.subject))),
+              subjectLabelMatch(a.subject, subject)),
         );
         assessmentId = hit?.id;
       } else {
@@ -88,7 +88,7 @@ export function parseScoreCsv(text: string, assessments: AssessmentDef[]): Impor
             a.date === norm &&
             (!subject ||
               a.subject === subject ||
-              subject.includes(subjectShort(a.subject))),
+              subjectLabelMatch(a.subject, subject)),
         );
         assessmentId = hit?.id;
       }
