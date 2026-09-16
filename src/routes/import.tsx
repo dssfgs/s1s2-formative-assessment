@@ -47,13 +47,13 @@ export function ImportPage() {
           <CardHeader>
             <CardTitle>匯入 CSV／Excel 貼上</CardTitle>
             <CardDescription>
-              欄位建議：班別, 班號, 姓名, 學號, 科目, 日期, 分數, 重測
+              欄位建議：班別, 班號, 姓名, 學號, 科目, 日期, 分數
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <textarea
               className="min-h-40 w-full rounded-md border border-border bg-input p-3 font-mono text-xs"
-              placeholder="1A,01,陳嘉樂,16A001,中文,14/9,16,"
+              placeholder="1A,01,陳嘉樂,16A001,中文,14/9,16"
               onPaste={(e) => {
                 const t = e.clipboardData.getData("text");
                 if (t.includes("\t") || t.includes(",")) {

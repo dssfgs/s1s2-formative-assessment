@@ -29,7 +29,7 @@ export function GroupsPage() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-medium tracking-tight">語文分組輸入</h1>
+          <h1 className="font-display text-2xl font-medium tracking-tight">輸入中文／英文</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             按 2026-2027 分組上課名單排列。Ruby（中一）／Ann（中二）在所屬上課組輸入中文或英文分數，不必翻原班。非核心科目仍按班別輸入。
           </p>

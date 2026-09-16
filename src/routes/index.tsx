@@ -157,11 +157,11 @@ export function Home() {
 
       <section>
         <div className="mb-3 flex items-end justify-between gap-2">
-          <h2 className="font-display text-lg">按上課分組輸入語文</h2>
+          <h2 className="font-display text-lg">輸入中英（按上課組）</h2>
           <Button asChild variant="outline" size="sm">
             <Link to="/groups">
               <Layers className="size-4" />
-              全部分組
+              去輸入
             </Link>
           </Button>
         </div>
@@ -204,7 +204,7 @@ export function Home() {
       </section>
 
       <section>
-        <h2 className="mb-3 font-display text-lg">按班輸入非核心／查看原班</h2>
+        <h2 className="mb-3 font-display text-lg">輸入非核心（按班）</h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {ALL_CLASSES.map((c) => {
             const n = (roster[c] ?? []).filter(isActive).length;
@@ -273,7 +273,7 @@ function AwardPeek() {
   if (byTrack.every((t) => t.rows.length === 0)) {
     return (
       <p className="text-sm text-muted-foreground">
-        尚未有連續兩次小測成績。可先載入示範數據，或到班別輸入分數。
+        尚未有連續兩次小測成績。可先載入示範數據，或到「輸入中英」按上課組輸入分數。
       </p>
     );
   }

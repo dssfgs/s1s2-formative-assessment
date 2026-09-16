@@ -21,9 +21,19 @@ import { PwaProvider } from "@/lib/pwa";
 import { cn } from "@/lib/utils";
 import { InstallHeaderButton, InstallPrompt, InstallSpacer } from "@/components/install-prompt";
 
-const NAV = [
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof LayoutGrid;
+  title?: string;
+};
+
+const NAV_INPUT: NavItem[] = [
   { to: "/", label: "總覽", icon: LayoutGrid },
-  { to: "/groups", label: "語文分組", icon: Layers },
+  { to: "/groups", label: "輸入中英", icon: Layers, title: "中文、英文按上課分組輸入" },
+];
+
+const NAV_MORE: NavItem[] = [
   { to: "/all", label: "全校總表", icon: Users },
   { to: "/awards", label: "進步頒獎", icon: Award },
   { to: "/subjects", label: "各科進程", icon: Table2 },
@@ -82,34 +92,18 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           <nav className="flex flex-col gap-6 p-4">
             <div className="flex flex-col gap-1">
-              {NAV.map((item) => {
-                const active =
-                  item.to === "/"
-                    ? pathname === "/"
-                    : item.to === "/groups"
-                      ? pathname.startsWith("/groups") || pathname.startsWith("/group/")
-                      : pathname.startsWith(item.to);
-                return (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    onClick={() => setOpen(false)}
-                    className={cn(
-                      "flex h-10 items-center gap-2 rounded-md px-3 text-sm transition-colors",
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    )}
-                  >
-                    <item.icon className="size-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
+              {NAV_INPUT.map((item) => (
+                <NavLink
+                  key={item.to}
+                  item={item}
+                  pathname={pathname}
+                  onClick={() => setOpen(false)}
+                />
+              ))}
             </div>
             <div>
-              <p className="mb-2 px-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                中一級
+              <p className="mb-2 px-3 text-[11px] font-medium tracking-wider text-muted-foreground">
+                輸入非核心 · 中一
               </p>
               <div className="grid grid-cols-4 gap-1">
                 {S1_CLASSES.map((c) => (
@@ -123,8 +117,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
             </div>
             <div>
-              <p className="mb-2 px-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                中二級
+              <p className="mb-2 px-3 text-[11px] font-medium tracking-wider text-muted-foreground">
+                輸入非核心 · 中二
               </p>
               <div className="grid grid-cols-4 gap-1">
                 {S2_CLASSES.map((c) => (
@@ -136,6 +130,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                   />
                 ))}
               </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              {NAV_MORE.map((item) => (
+                <NavLink
+                  key={item.to}
+                  item={item}
+                  pathname={pathname}
+                  onClick={() => setOpen(false)}
+                />
+              ))}
             </div>
           </nav>
         </aside>
@@ -186,6 +190,39 @@ function ClientGate({ children }: { children: ReactNode }) {
   return children;
 }
 
+function NavLink({
+  item,
+  pathname,
+  onClick,
+}: {
+  item: NavItem;
+  pathname: string;
+  onClick: () => void;
+}) {
+  const active =
+    item.to === "/"
+      ? pathname === "/"
+      : item.to === "/groups"
+        ? pathname.startsWith("/groups") || pathname.startsWith("/group/")
+        : pathname.startsWith(item.to);
+  return (
+    <Link
+      to={item.to}
+      title={item.title}
+      onClick={onClick}
+      className={cn(
+        "flex h-10 items-center gap-2 rounded-md px-3 text-sm transition-colors",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+    >
+      <item.icon className="size-4" />
+      {item.label}
+    </Link>
+  );
+}
+
 function ClassChip({
   code,
   active,
@@ -199,6 +236,7 @@ function ClassChip({
     <Link
       to="/class/$code"
       params={{ code }}
+      title="輸入地理、公民、中史、歷史、佛化、科學"
       onClick={onClick}
       className={cn(
         "grid h-9 place-items-center rounded-md text-xs font-medium transition-colors",

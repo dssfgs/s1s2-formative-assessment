@@ -161,14 +161,6 @@ function fillClass(
       const max = a.group === "formal" ? 100 : 20;
       const raw = Math.round((pct / 100) * max * 2) / 2;
       const entry = { raw: String(raw), retake: "" };
-      if (
-        a.group !== "formal" &&
-        raw / max < 0.5 &&
-        unit(hash("rt" + a.id + ch)) > 0.35
-      ) {
-        const better = Math.min(max, raw + 3 + Math.round(unit(hash("b" + ch)) * 4));
-        entry.retake = String(better);
-      }
       s.scores[a.id] = entry;
     }
     roster[code][i] = s;

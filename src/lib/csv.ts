@@ -142,11 +142,7 @@ export function exportClassCsv(
     "班號",
     "學號",
     "姓名",
-    ...papers.flatMap((a) => {
-      const label = `${subjectShort(a.subject)} ${paperHeading(a)}`;
-      if (a.group === "formal") return [label];
-      return [label, `${label}重測`];
-    }),
+    ...papers.map((a) => `${subjectShort(a.subject)} ${paperHeading(a)}`),
   ];
   const lines = [head.join(",")];
   for (const s of students) {
@@ -155,7 +151,6 @@ export function exportClassCsv(
     for (const a of papers) {
       const e = s.scores[a.id];
       cells.push(e?.raw ?? "");
-      if (a.group !== "formal") cells.push(e?.retake ?? "");
     }
     lines.push(cells.join(","));
   }

@@ -54,7 +54,7 @@ export function MaxInput({
       e.preventDefault();
       commit(e.currentTarget.value);
       const prev = document.querySelector<HTMLInputElement>(
-        `input[data-r="-1"][data-c="${col - 1}"], input[data-r="-1"][data-c="${col - 2}"]`,
+        `input[data-r="-1"][data-c="${col - 1}"]`,
       );
       if (prev) {
         prev.focus();
@@ -66,7 +66,7 @@ export function MaxInput({
       e.preventDefault();
       commit(e.currentTarget.value);
       const next = document.querySelector<HTMLInputElement>(
-        `input[data-r="-1"][data-c="${col + 1}"], input[data-r="-1"][data-c="${col + 2}"]`,
+        `input[data-r="-1"][data-c="${col + 1}"]`,
       );
       if (next) {
         next.focus();
@@ -96,10 +96,8 @@ export function ScorePair({
   paper,
   max,
   pass,
-  taMode,
   row,
   rawCol,
-  retakeCol,
   onPasteGrid,
   onChange,
 }: {
@@ -107,12 +105,10 @@ export function ScorePair({
   paper: AssessmentDef;
   max: number;
   pass: number;
-  taMode: boolean;
   row: number;
   rawCol: number;
-  retakeCol: number;
   onPasteGrid: (grid: string[][], startRow: number, startCol: number) => void;
-  onChange: (patch: { raw?: string; retake?: string }) => void;
+  onChange: (patch: { raw: string }) => void;
 }) {
   const entry = student.scores[paper.id] ?? { raw: "", retake: "" };
   const r = quizResult(student, paper, max, pass);
@@ -136,18 +132,6 @@ export function ScorePair({
         onPasteGrid={onPasteGrid}
         aria-label={`${student.chname || "學生"} ${paperLabel(paper)} 分數`}
       />
-      {!taMode && !formal && (
-        <CellInput
-          className="opacity-80"
-          inputMode="decimal"
-          value={entry.retake}
-          row={row}
-          col={retakeCol}
-          onChange={(v) => onChange({ retake: v })}
-          onPasteGrid={onPasteGrid}
-          aria-label={`${student.chname || "學生"} ${paperLabel(paper)} 重測`}
-        />
-      )}
     </td>
   );
 }

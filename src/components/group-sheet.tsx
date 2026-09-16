@@ -32,7 +32,7 @@ import { subjectShort } from "@/lib/subjects";
 import { useAppStore, useAssessments, useMaxOf } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-type InputCol = { kind: "raw"; id: string } | { kind: "retake"; id: string };
+type InputCol = { kind: "raw"; id: string };
 
 export function GroupSheet({ subject, groupId }: { subject: StreamId; groupId: string }) {
   const form = formOfGroup(groupId);
@@ -85,10 +85,9 @@ export function GroupSheet({ subject, groupId }: { subject: StreamId; groupId: s
     const out: InputCol[] = [];
     for (const a of papers) {
       out.push({ kind: "raw", id: a.id });
-      if (!taMode && a.group !== "formal") out.push({ kind: "retake", id: a.id });
     }
     return out;
-  }, [papers, taMode]);
+  }, [papers]);
 
   const identityCols = 3;
 
@@ -129,7 +128,6 @@ export function GroupSheet({ subject, groupId }: { subject: StreamId; groupId: s
         const val = grid[r]![c] ?? "";
         has = true;
         if (col.kind === "raw") scores[col.id] = { ...scores[col.id], raw: val };
-        else scores[col.id] = { ...scores[col.id], retake: val };
       }
       if (has) items.push({ studentId: student.id, scores });
     }
@@ -268,9 +266,6 @@ export function GroupSheet({ subject, groupId }: { subject: StreamId; groupId: s
                     <div>{paperHeading(a)}</div>
                     <div className="font-normal text-[10px] opacity-80">{paperSubheading(a)}</div>
                     <div className="font-normal text-[11px] opacity-90">滿分 {maxOf(a.id)}</div>
-                    {!taMode && !formal && (
-                      <div className="font-normal text-[11px] opacity-80">重測</div>
-                    )}
                   </th>
                 );
               })}
@@ -339,13 +334,9 @@ export function GroupSheet({ subject, groupId }: { subject: StreamId; groupId: s
                         paper={a}
                         max={maxOf(a.id)}
                         pass={settings.passPercent}
-                        taMode={taMode}
                         row={row}
                         rawCol={
                           identityCols + cols.findIndex((c) => c.kind === "raw" && c.id === a.id)
-                        }
-                        retakeCol={
-                          identityCols + cols.findIndex((c) => c.kind === "retake" && c.id === a.id)
                         }
                         onPasteGrid={onPasteGrid}
                         onChange={(patch) => setScore(s.classcode, s.id, a.id, patch)}
@@ -367,7 +358,7 @@ export function GroupSheet({ subject, groupId }: { subject: StreamId; groupId: s
                         "—"
                       ) : (
                         <Badge tone={sr.passedAll ? "pass" : "fail"}>
-                          {sr.passedAll ? "達標" : "重測"}
+                          {sr.passedAll ? "達標" : "未達標"}
                         </Badge>
                       )}
                     </td>

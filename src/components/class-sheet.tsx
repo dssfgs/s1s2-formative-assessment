@@ -41,8 +41,7 @@ type InputCol =
   | { kind: "classno" }
   | { kind: "regno" }
   | { kind: "chname" }
-  | { kind: "raw"; id: string }
-  | { kind: "retake"; id: string };
+  | { kind: "raw"; id: string };
 
 export function ClassSheet({ code }: { code: ClassCode }) {
   const form = formOf(code);
@@ -96,10 +95,9 @@ export function ClassSheet({ code }: { code: ClassCode }) {
     const out: InputCol[] = [{ kind: "classno" }, { kind: "chname" }, { kind: "regno" }];
     for (const a of papers) {
       out.push({ kind: "raw", id: a.id });
-      if (!taMode && a.group !== "formal") out.push({ kind: "retake", id: a.id });
     }
     return out;
-  }, [papers, taMode]);
+  }, [papers]);
 
   const stats = useMemo(() => {
     const active = roster.filter(isActive);
@@ -143,8 +141,6 @@ export function ClassSheet({ code }: { code: ClassCode }) {
         else if (col.kind === "chname") student.chname = val;
         else if (col.kind === "raw") {
           scores[col.id] = { ...scores[col.id], raw: val };
-        } else {
-          scores[col.id] = { ...scores[col.id], retake: val };
         }
       }
       if (has) {
@@ -179,7 +175,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
     ? "中文、英文分開輸入、分開分析。進步指數＝該科連續兩次課後小測百分率差的平均（需至少兩次有分）。"
     : stage === "all"
       ? "非核心科目在課後評估旁輸入測驗／考試。T1A1 對第一階段、T1A2 對第二階段、T2A1 對第三階段、T2A2 對第四階段。進步＝測考% − 該階段課後評估%。"
-      : `${FORMAL_BY_STAGE[stage].short} ${FORMAL_BY_STAGE[stage].name} 相對${STAGES[stage - 1]?.name}課後評估。進步＝測考% − 階段%。測考欄無重測。`;
+      : `${FORMAL_BY_STAGE[stage].short} ${FORMAL_BY_STAGE[stage].name} 相對${STAGES[stage - 1]?.name}課後評估。進步＝測考% − 階段%。`;
 
   return (
     <div className="flex flex-col gap-4">
@@ -396,9 +392,6 @@ export function ClassSheet({ code }: { code: ClassCode }) {
                     <div>{paperHeading(a)}</div>
                     <div className="font-normal text-[10px] opacity-80">{paperSubheading(a)}</div>
                     <div className="font-normal text-[11px] opacity-90">滿分 {maxOf(a.id)}</div>
-                    {!taMode && !formal && (
-                      <div className="font-normal text-[11px] opacity-80">重測</div>
-                    )}
                   </th>
                 );
               })}
@@ -492,10 +485,8 @@ export function ClassSheet({ code }: { code: ClassCode }) {
                       paper={a}
                       max={maxOf(a.id)}
                       pass={settings.passPercent}
-                      taMode={taMode}
                       row={row}
                       rawCol={cols.findIndex((c) => c.kind === "raw" && c.id === a.id)}
-                      retakeCol={cols.findIndex((c) => c.kind === "retake" && c.id === a.id)}
                       onPasteGrid={onPasteGrid}
                       onChange={(patch) => setScore(code, s.id, a.id, patch)}
                     />
@@ -516,7 +507,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
                       "—"
                     ) : (
                       <Badge tone={sr.passedAll ? "pass" : "fail"}>
-                        {sr.passedAll ? "達標" : "重測"}
+                        {sr.passedAll ? "達標" : "未達標"}
                       </Badge>
                     )}
                   </td>
@@ -595,7 +586,6 @@ function StudentReports({
                     <th className="py-1">項目</th>
                     <th className="py-1">科目</th>
                     <th className="py-1 text-right">得分</th>
-                    <th className="py-1 text-right">重測</th>
                     <th className="py-1 text-right">百分率</th>
                     <th className="py-1 text-center">結果</th>
                   </tr>
@@ -611,9 +601,6 @@ function StudentReports({
                         <td className="py-1 text-right tabular-nums">
                           {r.raw == null ? "—" : `${r.raw}/${r.max}`}
                         </td>
-                        <td className="py-1 text-right tabular-nums">
-                          {formal ? "—" : r.retake == null ? "—" : r.retake}
-                        </td>
                         <td className="py-1 text-right tabular-nums">{fmtPct(r.pct)}</td>
                         <td className="py-1 text-center">
                           {formal
@@ -622,7 +609,7 @@ function StudentReports({
                               ? "—"
                               : r.passed
                                 ? "達標"
-                                : "重測"}
+                                : "未達標"}
                         </td>
                       </tr>
                     );

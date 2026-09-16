@@ -103,9 +103,7 @@ export function effectiveScore(entry: ScoreEntry | undefined): {
   retake: number | null;
 } {
   const raw = parseNum(entry?.raw);
-  const retake = parseNum(entry?.retake);
-  if (retake !== null) return { value: retake, usedRetake: true, raw, retake };
-  return { value: raw, usedRetake: false, raw, retake };
+  return { value: raw, usedRetake: false, raw, retake: null };
 }
 
 export function quizResult(
