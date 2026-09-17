@@ -48,7 +48,7 @@ export function SettingsPage() {
               value={settings.defaultMax}
               onChange={(e) => setSettings({ defaultMax: Number(e.target.value) || 20 })}
             />
-            <p className="mt-1 text-xs text-muted-foreground">語文小測、非核心課後評估。各班各次可在成績表「滿分」列分開改。</p>
+            <p className="mt-1 text-xs text-muted-foreground">語文小測、非核心課後評估。各班／各上課組可在成績表「滿分」列分開改。</p>
           </div>
           <div>
             <Label htmlFor="examMax">測驗／考試預設滿分</Label>

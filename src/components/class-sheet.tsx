@@ -26,6 +26,7 @@ import { parseRoster } from "@/lib/paste";
 import {
   computeClass,
   isActive,
+  maxScope,
   progressOf,
   quizResult,
   type ClassCompute,
@@ -87,11 +88,11 @@ export function ClassSheet({ code }: { code: ClassCode }) {
       computeClass(
         roster,
         classPapers,
-        classMax,
+        maxOf,
         settings.passPercent,
         settings.progressMethod,
       ),
-    [roster, classPapers, classMax, settings.passPercent, settings.progressMethod],
+    [roster, classPapers, maxOf, settings.passPercent, settings.progressMethod],
   );
 
   const cols: InputCol[] = useMemo(() => {
@@ -110,7 +111,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
     let need = 0;
     for (const s of active) {
       for (const a of papers) {
-        const r = quizResult(s, a, classMax(a.id), settings.passPercent);
+        const r = quizResult(s, a, maxOf(a.id, maxScope(s, a)), settings.passPercent);
         if (r.pct == null) continue;
         sat++;
         pcts.push(r.pct);
@@ -124,7 +125,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
       passRate: sat ? passed / sat : null,
       need,
     };
-  }, [roster, papers, classMax, settings.passPercent]);
+  }, [roster, papers, maxOf, settings.passPercent]);
 
   const ta = TA_BY_FORM[form];
 
@@ -373,7 +374,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
       </Card>
 
       <p className="text-xs text-muted-foreground print:hidden">
-        表頂「滿分」列只改本班。同一日同一科，1A 與 1B 可各自設滿分。輸入分數後按{" "}
+        表頂「滿分」列只改本班。同一日同一科，各班可不同；語文抽離組到「輸入中英」改該組滿分。輸入分數後按{" "}
         <kbd className="rounded border border-border px-1">Enter</kbd> 跳到下一位同一欄；
         Shift+Enter 往上。從 Excel 複製一整欄分數，點本表該欄第一格再 Ctrl+V。
       </p>
@@ -487,7 +488,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
                       key={a.id}
                       student={s}
                       paper={a}
-                      max={classMax(a.id)}
+                      max={maxOf(a.id, maxScope(s, a))}
                       pass={settings.passPercent}
                       row={row}
                       rawCol={cols.findIndex((c) => c.kind === "raw" && c.id === a.id)}
@@ -531,7 +532,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
         roster={roster}
         papers={papers}
         computed={computed}
-        maxOf={classMax}
+        maxOf={maxOf}
         pass={settings.passPercent}
         subject={subject}
         stage={stage}
@@ -554,7 +555,7 @@ function StudentReports({
   roster: Student[];
   papers: AssessmentDef[];
   computed: ClassCompute;
-  maxOf: (id: string) => number;
+  maxOf: (id: string, scope?: string) => number;
   pass: number;
   subject: SubjectId;
   stage: StageId | "all";
@@ -596,7 +597,7 @@ function StudentReports({
                 </thead>
                 <tbody>
                   {papers.map((a) => {
-                    const r = quizResult(s, a, maxOf(a.id), pass);
+                    const r = quizResult(s, a, maxOf(a.id, maxScope(s, a)), pass);
                     const formal = a.group === "formal";
                     return (
                       <tr key={a.id} className="border-t border-border/60">

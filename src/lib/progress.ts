@@ -128,13 +128,24 @@ export function quizResult(
   };
 }
 
+export type MaxFn = (id: string, scope?: string) => number;
+
+/** 語文跟上課組（原班／抽離），非核心跟原班。 */
+export function maxScope(s: Student, a: { subject: string }): string {
+  if (a.subject === "chi" && s.chiGroup) return s.chiGroup;
+  if (a.subject === "eng" && s.engGroup) return s.engGroup;
+  return s.classcode;
+}
+
 export function stagePct(
   student: Student,
   assessments: AssessmentDef[],
-  maxOf: (id: string) => number,
+  maxOf: MaxFn,
   passPercent: number,
 ): { pct: number | null; quizzes: number; passedAll: boolean | null; anyRetake: boolean } {
-  const results = assessments.map((a) => quizResult(student, a, maxOf(a.id), passPercent));
+  const results = assessments.map((a) =>
+    quizResult(student, a, maxOf(a.id, maxScope(student, a)), passPercent),
+  );
   const pcts = results.map((r) => r.pct).filter((n): n is number => n !== null);
   const judged = results.filter((r) => r.passed !== null);
   return {
@@ -198,7 +209,7 @@ export function formalDeltaKey(subject: SubjectId, kind: FormalKind) {
 export function computeClass(
   students: Student[],
   assessments: AssessmentDef[],
-  maxOf: (id: string) => number,
+  maxOf: MaxFn,
   passPercent: number,
   _method: ProgressMethod = "pct",
 ): ClassCompute {
@@ -278,19 +289,19 @@ export function computeClass(
         .filter((a) => a.subject === lang)
         .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
       if (!series.length) continue;
-      const allPcts = series.map((a) => quizResult(student, a, maxOf(a.id), passPercent).pct);
+      const allPcts = series.map((a) => quizResult(student, a, maxOf(a.id, maxScope(student, a)), passPercent).pct);
       langProgress[lang] = meanConsecutiveImprovement(allPcts);
       subjectDelta[lang] = langProgress[lang];
       for (const st of stages) {
         const stageSeries = series.filter((a) => a.stage === st);
-        const pcts = stageSeries.map((a) => quizResult(student, a, maxOf(a.id), passPercent).pct);
+        const pcts = stageSeries.map((a) => quizResult(student, a, maxOf(a.id, maxScope(student, a)), passPercent).pct);
         langStageProgress[keyOf(lang, st)] = meanConsecutiveImprovement(pcts);
       }
     }
 
     for (const a of formals) {
       if (!a.formalKind) continue;
-      const exam = quizResult(student, a, maxOf(a.id), passPercent).pct;
+      const exam = quizResult(student, a, maxOf(a.id, maxScope(student, a)), passPercent).pct;
       const sk = keyOf(a.subject, a.stage);
       const stage = stagePctMap[sk]?.[idx] ?? null;
       let d: number | null = null;
@@ -392,7 +403,7 @@ export function awardsForClass(
 export function classStats(
   students: Student[],
   assessments: AssessmentDef[],
-  maxOf: (id: string, classCode?: string) => number,
+  maxOf: MaxFn,
   passPercent: number,
 ) {
   const active = students.filter(isActive);
@@ -406,7 +417,7 @@ export function classStats(
       if (a.group === "formal") continue;
       if (formOf(s.classcode) !== a.form) continue;
       papers++;
-      const r = quizResult(s, a, maxOf(a.id, s.classcode), passPercent);
+      const r = quizResult(s, a, maxOf(a.id, maxScope(s, a)), passPercent);
       if (r.pct === null) continue;
       sat++;
       if (r.passed) passed++;

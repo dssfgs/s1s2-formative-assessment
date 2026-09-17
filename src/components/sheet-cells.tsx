@@ -1,7 +1,6 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import { CellInput, focusCell } from "@/components/cell-input";
 import { paperLabel, type AssessmentDef } from "@/lib/calendar";
-import type { ClassCode } from "@/lib/classes";
 import { quizResult, type Student } from "@/lib/progress";
 import { useAppStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -26,7 +25,7 @@ export function MaxInput({
   max: number;
   col: number;
   label: string;
-  classCode: ClassCode | ClassCode[];
+  classCode: string;
 }) {
   const setPaperMax = useAppStore((s) => s.setPaperMax);
   const box = useRef<HTMLInputElement>(null);

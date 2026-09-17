@@ -6,7 +6,7 @@ import {
   allAssessments,
   type StageId,
 } from "./calendar";
-import { emptyStudent, type ProgressMethod, type ScoreEntry, type Student } from "./progress";
+import { emptyStudent, type MaxFn, type ProgressMethod, type ScoreEntry, type Student } from "./progress";
 import type { RosterRow } from "./paste";
 import { makeDemoRoster, makeEmptyRoster, makeOfficialRoster } from "./sample";
 import type { SubjectId } from "./subjects";
@@ -48,7 +48,7 @@ type State = {
   hydrated: boolean;
   setStudent: (code: ClassCode, index: number, patch: Partial<Student>) => void;
   setScore: (code: ClassCode, studentId: string, assessmentId: string, patch: Partial<ScoreEntry>) => void;
-  setPaperMax: (assessmentId: string, max: number, classCode: ClassCode | ClassCode[]) => void;
+  setPaperMax: (assessmentId: string, max: number, scope: string) => void;
   setSettings: (patch: Partial<AppSettings>) => void;
   setNoncoreOrder: (stage: StageId, order: SubjectId[]) => void;
   applyRoster: (code: ClassCode, rows: RosterRow[]) => number;
@@ -105,13 +105,13 @@ export const useAppStore = create<State>()(
           });
           return { roster: { ...st.roster, [code]: list } };
         }),
-      setPaperMax: (assessmentId, max, classCode) =>
-        set((st) => {
-          const paperMax = { ...st.settings.paperMax };
-          const codes = Array.isArray(classCode) ? classCode : [classCode];
-          for (const c of codes) paperMax[paperMaxKey(c, assessmentId)] = max;
-          return { settings: { ...st.settings, paperMax } };
-        }),
+      setPaperMax: (assessmentId, max, scope) =>
+        set((st) => ({
+          settings: {
+            ...st.settings,
+            paperMax: { ...st.settings.paperMax, [paperMaxKey(scope, assessmentId)]: max },
+          },
+        })),
       setSettings: (patch) =>
         set((st) => ({ settings: { ...st.settings, ...patch } })),
       setNoncoreOrder: (stage, order) =>
@@ -263,23 +263,23 @@ export const useAppStore = create<State>()(
   ),
 );
 
-export function paperMaxKey(classCode: string, assessmentId: string) {
-  return `${classCode}::${assessmentId}`;
+export function paperMaxKey(scope: string, assessmentId: string) {
+  return `${scope}::${assessmentId}`;
 }
 
-export type MaxFn = (id: string, classCode?: string) => number;
+export type { MaxFn };
 
 export function useAssessments() {
   return allAssessments();
 }
 
-/** 班別專用滿分；沒有則退回舊的全級共用值，再退回預設。 */
+/** 按班或上課組取滿分；沒有則退回舊的全級共用值，再退回預設。 */
 export function useMaxOf(): MaxFn {
   const settings = useAppStore((s) => s.settings);
-  return (id, classCode) => {
+  return (id, scope) => {
     const map = settings.paperMax;
-    if (classCode && map[paperMaxKey(classCode, id)] != null) {
-      return map[paperMaxKey(classCode, id)]!;
+    if (scope && map[paperMaxKey(scope, id)] != null) {
+      return map[paperMaxKey(scope, id)]!;
     }
     if (map[id] != null) return map[id]!;
     if (/-T[12]A[12]$/.test(id)) return settings.examMax ?? 100;

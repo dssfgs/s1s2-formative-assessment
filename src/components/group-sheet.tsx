@@ -53,7 +53,6 @@ export function GroupSheet({ subject, groupId }: { subject: StreamId; groupId: s
   );
   const hasGroups = rosterHasGroups(roster);
   const homeClasses = useMemo(() => classesInGroup(subject, groupId), [subject, groupId]);
-  const maxCodes = homeClasses.length === 1 ? homeClasses[0]! : homeClasses;
   const ta = TA_BY_FORM[form];
 
   const papers = useMemo(
@@ -74,7 +73,7 @@ export function GroupSheet({ subject, groupId }: { subject: StreamId; groupId: s
       byClass[code] = computeClass(
         roster[code] ?? [],
         assessmentsFor(all, { form: formOf(code) }),
-        (id) => maxOf(id, code),
+        maxOf,
         settings.passPercent,
         settings.progressMethod,
       );
@@ -99,7 +98,7 @@ export function GroupSheet({ subject, groupId }: { subject: StreamId; groupId: s
     let need = 0;
     for (const s of students) {
       for (const a of papers) {
-        const r = quizResult(s, a, maxOf(a.id, s.classcode), settings.passPercent);
+        const r = quizResult(s, a, maxOf(a.id, groupId), settings.passPercent);
         if (r.pct == null) continue;
         sat++;
         pcts.push(r.pct);
@@ -245,7 +244,7 @@ export function GroupSheet({ subject, groupId }: { subject: StreamId; groupId: s
       ) : null}
 
       <p className="text-xs text-muted-foreground print:hidden">
-        表頂「滿分」列按原班分開。抽離組改滿分會寫入本組各班，之後仍可到原班再改。輸入分數後按{" "}
+        表頂「滿分」列只改本組。原班與抽離組分開，互不影響。輸入分數後按{" "}
         <kbd className="rounded border border-border px-1">Enter</kbd> 跳到下一位同一欄。從 Excel
         複製一整欄分數，點本表該欄第一格再 Ctrl+V。
       </p>
@@ -267,7 +266,7 @@ export function GroupSheet({ subject, groupId }: { subject: StreamId; groupId: s
                     <div>{paperHeading(a)}</div>
                     <div className="font-normal text-[10px] opacity-80">{paperSubheading(a)}</div>
                     <div className="font-normal text-[11px] opacity-90">
-                      滿分 {maxOf(a.id, homeClasses[0])}
+                      滿分 {maxOf(a.id, groupId)}
                     </div>
                   </th>
                 );
@@ -290,15 +289,15 @@ export function GroupSheet({ subject, groupId }: { subject: StreamId; groupId: s
                 >
                   <MaxInput
                     id={a.id}
-                    max={maxOf(a.id, homeClasses[0])}
-                    classCode={maxCodes}
+                    max={maxOf(a.id, groupId)}
+                    classCode={groupId}
                     col={identityCols + cols.findIndex((c) => c.kind === "raw" && c.id === a.id)}
                     label={paperLabel(a)}
                   />
                 </td>
               ))}
               <td colSpan={4} className="px-2 py-1 text-left text-[11px] font-normal text-muted-foreground">
-                {homeClasses.length > 1 ? "抽離組改此格會寫入本組各班" : "只改本班滿分"}
+                只改本組滿分，原班／其他抽離組不受影響
               </td>
             </tr>
           </thead>
@@ -336,7 +335,7 @@ export function GroupSheet({ subject, groupId }: { subject: StreamId; groupId: s
                         key={a.id}
                         student={s}
                         paper={a}
-                        max={maxOf(a.id, s.classcode)}
+                        max={maxOf(a.id, groupId)}
                         pass={settings.passPercent}
                         row={row}
                         rawCol={

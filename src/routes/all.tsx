@@ -6,7 +6,7 @@ import { ALL_CLASSES, classLabel, formOf, S1_CLASSES, S2_CLASSES, type ClassCode
 import { STAGES, assessmentsFor, type StageId } from "@/lib/calendar";
 import { downloadText } from "@/lib/csv";
 import { fmtPct, signed } from "@/lib/format";
-import { computeClass, isActive, progressOf, quizResult, type Student } from "@/lib/progress";
+import { computeClass, isActive, maxScope, progressOf, quizResult, type Student } from "@/lib/progress";
 import { LANGUAGE_SUBJECTS, NONCORE_SUBJECTS, type SubjectId } from "@/lib/subjects";
 import { useAppStore, useAssessments, useMaxOf } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -51,7 +51,7 @@ export function AllPage() {
       const computed = computeClass(
         roster[code] ?? [],
         formPapers,
-        (id) => maxOf(id, code),
+        maxOf,
         settings.passPercent,
         settings.progressMethod,
       );
@@ -62,7 +62,7 @@ export function AllPage() {
         let need = 0;
         const pcts: number[] = [];
         for (const a of viewPapers) {
-          const r = quizResult(s, a, maxOf(a.id, code), settings.passPercent);
+          const r = quizResult(s, a, maxOf(a.id, maxScope(s, a)), settings.passPercent);
           if (r.pct == null) continue;
           sat++;
           pcts.push(r.pct);
