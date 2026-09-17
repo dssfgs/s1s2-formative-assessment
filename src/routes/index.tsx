@@ -259,7 +259,7 @@ function AwardPeek() {
       const computed = computeClass(
         roster[code] ?? [],
         papers,
-        maxOf,
+        (id) => maxOf(id, code),
         settings.passPercent,
         settings.progressMethod,
       );

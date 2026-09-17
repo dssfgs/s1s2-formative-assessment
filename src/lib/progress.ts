@@ -392,7 +392,7 @@ export function awardsForClass(
 export function classStats(
   students: Student[],
   assessments: AssessmentDef[],
-  maxOf: (id: string) => number,
+  maxOf: (id: string, classCode?: string) => number,
   passPercent: number,
 ) {
   const active = students.filter(isActive);
@@ -406,7 +406,7 @@ export function classStats(
       if (a.group === "formal") continue;
       if (formOf(s.classcode) !== a.form) continue;
       papers++;
-      const r = quizResult(s, a, maxOf(a.id), passPercent);
+      const r = quizResult(s, a, maxOf(a.id, s.classcode), passPercent);
       if (r.pct === null) continue;
       sat++;
       if (r.passed) passed++;

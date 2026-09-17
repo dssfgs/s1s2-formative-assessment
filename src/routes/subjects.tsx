@@ -131,7 +131,7 @@ export function SubjectsPage() {
         computeClass(
           roster[code] ?? [],
           all.filter((a) => a.form === form && (!a.classes || a.classes.includes(code))),
-          maxOf,
+          (id) => maxOf(id, code),
           pass,
           settings.progressMethod,
         ),
@@ -152,7 +152,7 @@ export function SubjectsPage() {
       for (const s of students) {
         const studentPcts: number[] = [];
         for (const a of quizzes) {
-          const r = quizResult(s, a, maxOf(a.id), pass);
+          const r = quizResult(s, a, maxOf(a.id, code), pass);
           if (r.pct == null) continue;
           sat++;
           pcts.push(r.pct);
@@ -208,7 +208,7 @@ export function SubjectsPage() {
       for (const code of classes) {
         const pcts = (roster[code] ?? [])
           .filter(isActive)
-          .map((s) => quizResult(s, a, maxOf(a.id), pass).pct)
+          .map((s) => quizResult(s, a, maxOf(a.id, code), pass).pct)
           .filter((v): v is number => v != null);
         const m = average(pcts);
         row[classLabel(code)] = m;
@@ -250,7 +250,7 @@ export function SubjectsPage() {
       for (const s of members) {
         const studentPcts: number[] = [];
         for (const a of quizzes) {
-          const r = quizResult(s, a, maxOf(a.id), pass);
+          const r = quizResult(s, a, maxOf(a.id, s.classcode), pass);
           if (r.pct != null) studentPcts.push(r.pct);
         }
         if (studentPcts.length) pcts.push(average(studentPcts)!);

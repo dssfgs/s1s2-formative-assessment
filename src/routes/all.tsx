@@ -51,7 +51,7 @@ export function AllPage() {
       const computed = computeClass(
         roster[code] ?? [],
         formPapers,
-        maxOf,
+        (id) => maxOf(id, code),
         settings.passPercent,
         settings.progressMethod,
       );
@@ -62,7 +62,7 @@ export function AllPage() {
         let need = 0;
         const pcts: number[] = [];
         for (const a of viewPapers) {
-          const r = quizResult(s, a, maxOf(a.id), settings.passPercent);
+          const r = quizResult(s, a, maxOf(a.id, code), settings.passPercent);
           if (r.pct == null) continue;
           sat++;
           pcts.push(r.pct);

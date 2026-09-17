@@ -17,7 +17,7 @@ export function SettingsPage() {
       <header>
         <h1 className="font-display text-2xl font-medium tracking-tight">設定</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          及格線、滿分套用到全校八班。資料仍只存在本機。
+          及格線套用到全校。預設滿分只作底，各班可在成績表「滿分」列分開改。資料仍只存在本機。
         </p>
       </header>
 
@@ -48,7 +48,7 @@ export function SettingsPage() {
               value={settings.defaultMax}
               onChange={(e) => setSettings({ defaultMax: Number(e.target.value) || 20 })}
             />
-            <p className="mt-1 text-xs text-muted-foreground">語文小測、非核心課後評估。各次可在成績表「滿分」列改。</p>
+            <p className="mt-1 text-xs text-muted-foreground">語文小測、非核心課後評估。各班各次可在成績表「滿分」列分開改。</p>
           </div>
           <div>
             <Label htmlFor="examMax">測驗／考試預設滿分</Label>
@@ -59,7 +59,7 @@ export function SettingsPage() {
               value={settings.examMax ?? 100}
               onChange={(e) => setSettings({ examMax: Number(e.target.value) || 100 })}
             />
-            <p className="mt-1 text-xs text-muted-foreground">T1A1／T1A2／T2A1／T2A2 欄。各次可在成績表「滿分」列改。</p>
+            <p className="mt-1 text-xs text-muted-foreground">T1A1／T1A2／T2A1／T2A2 欄。各班各次可在成績表「滿分」列分開改。</p>
           </div>
         </CardContent>
       </Card>

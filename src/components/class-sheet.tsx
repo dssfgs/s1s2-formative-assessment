@@ -80,16 +80,18 @@ export function ClassSheet({ code }: { code: ClassCode }) {
     [all, form, code],
   );
 
+  const classMax = useMemo(() => (id: string) => maxOf(id, code), [maxOf, code]);
+
   const computed = useMemo(
     () =>
       computeClass(
         roster,
         classPapers,
-        maxOf,
+        classMax,
         settings.passPercent,
         settings.progressMethod,
       ),
-    [roster, classPapers, maxOf, settings.passPercent, settings.progressMethod],
+    [roster, classPapers, classMax, settings.passPercent, settings.progressMethod],
   );
 
   const cols: InputCol[] = useMemo(() => {
@@ -108,7 +110,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
     let need = 0;
     for (const s of active) {
       for (const a of papers) {
-        const r = quizResult(s, a, maxOf(a.id), settings.passPercent);
+        const r = quizResult(s, a, classMax(a.id), settings.passPercent);
         if (r.pct == null) continue;
         sat++;
         pcts.push(r.pct);
@@ -122,7 +124,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
       passRate: sat ? passed / sat : null,
       need,
     };
-  }, [roster, papers, maxOf, settings.passPercent]);
+  }, [roster, papers, classMax, settings.passPercent]);
 
   const ta = TA_BY_FORM[form];
 
@@ -206,7 +208,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
             onClick={() =>
               downloadText(
                 `${code}_課後評估.csv`,
-                exportClassCsv(roster, papers, maxOf),
+                exportClassCsv(roster, papers, classMax),
               )
             }
           >
@@ -371,7 +373,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
       </Card>
 
       <p className="text-xs text-muted-foreground print:hidden">
-        表頂「滿分」列可改每一次評估的滿分（同級各班同一份卷共用，例如 1A 與 1B）。輸入分數後按{" "}
+        表頂「滿分」列只改本班。同一日同一科，1A 與 1B 可各自設滿分。輸入分數後按{" "}
         <kbd className="rounded border border-border px-1">Enter</kbd> 跳到下一位同一欄；
         Shift+Enter 往上。從 Excel 複製一整欄分數，點本表該欄第一格再 Ctrl+V。
       </p>
@@ -392,7 +394,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
                   >
                     <div>{paperHeading(a)}</div>
                     <div className="font-normal text-[10px] opacity-80">{paperSubheading(a)}</div>
-                    <div className="font-normal text-[11px] opacity-90">滿分 {maxOf(a.id)}</div>
+                    <div className="font-normal text-[11px] opacity-90">滿分 {classMax(a.id)}</div>
                   </th>
                 );
               })}
@@ -414,14 +416,15 @@ export function ClassSheet({ code }: { code: ClassCode }) {
                 >
                   <MaxInput
                     id={a.id}
-                    max={maxOf(a.id)}
+                    max={classMax(a.id)}
+                    classCode={code}
                     col={cols.findIndex((c) => c.kind === "raw" && c.id === a.id)}
                     label={paperLabel(a)}
                   />
                 </td>
               ))}
               <td colSpan={4} className="px-2 py-1 text-left text-[11px] font-normal text-muted-foreground">
-                同級各班同一份卷共用滿分
+                只改本班滿分，不影響其他班
               </td>
             </tr>
           </thead>
@@ -484,7 +487,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
                       key={a.id}
                       student={s}
                       paper={a}
-                      max={maxOf(a.id)}
+                      max={classMax(a.id)}
                       pass={settings.passPercent}
                       row={row}
                       rawCol={cols.findIndex((c) => c.kind === "raw" && c.id === a.id)}
@@ -528,7 +531,7 @@ export function ClassSheet({ code }: { code: ClassCode }) {
         roster={roster}
         papers={papers}
         computed={computed}
-        maxOf={maxOf}
+        maxOf={classMax}
         pass={settings.passPercent}
         subject={subject}
         stage={stage}

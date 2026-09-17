@@ -48,7 +48,7 @@ type State = {
   hydrated: boolean;
   setStudent: (code: ClassCode, index: number, patch: Partial<Student>) => void;
   setScore: (code: ClassCode, studentId: string, assessmentId: string, patch: Partial<ScoreEntry>) => void;
-  setPaperMax: (assessmentId: string, max: number) => void;
+  setPaperMax: (assessmentId: string, max: number, classCode: ClassCode | ClassCode[]) => void;
   setSettings: (patch: Partial<AppSettings>) => void;
   setNoncoreOrder: (stage: StageId, order: SubjectId[]) => void;
   applyRoster: (code: ClassCode, rows: RosterRow[]) => number;
@@ -105,13 +105,13 @@ export const useAppStore = create<State>()(
           });
           return { roster: { ...st.roster, [code]: list } };
         }),
-      setPaperMax: (assessmentId, max) =>
-        set((st) => ({
-          settings: {
-            ...st.settings,
-            paperMax: { ...st.settings.paperMax, [assessmentId]: max },
-          },
-        })),
+      setPaperMax: (assessmentId, max, classCode) =>
+        set((st) => {
+          const paperMax = { ...st.settings.paperMax };
+          const codes = Array.isArray(classCode) ? classCode : [classCode];
+          for (const c of codes) paperMax[paperMaxKey(c, assessmentId)] = max;
+          return { settings: { ...st.settings, paperMax } };
+        }),
       setSettings: (patch) =>
         set((st) => ({ settings: { ...st.settings, ...patch } })),
       setNoncoreOrder: (stage, order) =>
@@ -263,14 +263,25 @@ export const useAppStore = create<State>()(
   ),
 );
 
+export function paperMaxKey(classCode: string, assessmentId: string) {
+  return `${classCode}::${assessmentId}`;
+}
+
+export type MaxFn = (id: string, classCode?: string) => number;
+
 export function useAssessments() {
   return allAssessments();
 }
 
-export function useMaxOf() {
+/** 班別專用滿分；沒有則退回舊的全級共用值，再退回預設。 */
+export function useMaxOf(): MaxFn {
   const settings = useAppStore((s) => s.settings);
-  return (id: string) => {
-    if (settings.paperMax[id] != null) return settings.paperMax[id]!;
+  return (id, classCode) => {
+    const map = settings.paperMax;
+    if (classCode && map[paperMaxKey(classCode, id)] != null) {
+      return map[paperMaxKey(classCode, id)]!;
+    }
+    if (map[id] != null) return map[id]!;
     if (/-T[12]A[12]$/.test(id)) return settings.examMax ?? 100;
     return settings.defaultMax;
   };
